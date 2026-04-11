@@ -322,28 +322,42 @@ body {
 }
 .auto-load-banner .btn { padding: 4px 12px; font-size: 11px; }
 
-/* ===== 配置モード ===== */
-.btn-drag { background: #9c27b0; color: #fff; }
-.btn-drag:hover { background: #ab47bc; }
-.btn-drag.active {
-  background: #7b1fa2;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+/* ===== 画像挿入 ===== */
+.img-add-section {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f0f4f8;
+  border-radius: 8px;
 }
-.drag-badge {
-  position: fixed;
-  top: 60px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #9c27b0;
-  color: #fff;
-  padding: 6px 20px;
-  border-radius: 20px;
-  font-size: 11px;
+.img-add-section .edit-label-text { margin-bottom: 6px; display: block; }
+.img-shape-btns {
+  display: flex;
+  gap: 6px;
+}
+.img-shape-btn {
+  flex: 1;
+  padding: 8px 4px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 10px;
   font-weight: 600;
-  z-index: 9998;
-  display: none;
+  font-family: inherit;
+  text-align: center;
+  color: #555;
+  transition: all 0.15s;
 }
-.drag-badge.show { display: block; }
+.img-shape-btn:hover {
+  border-color: #1b6b2f;
+  color: #1b6b2f;
+  background: #e8f5e9;
+}
+.img-shape-btn .shape-icon {
+  font-size: 20px;
+  display: block;
+  margin-bottom: 2px;
+}
 
 /* ===== サイドバーD&D並べ替え ===== */
 .slide-thumb[draggable="true"] { cursor: grab; }
@@ -410,6 +424,12 @@ body {
 
 <!-- ===== アップロード画面 ===== -->
 <div id="upload-screen">
+  <div style="text-align:center;margin-bottom:40px;">
+    <div style="font-size:42px;font-weight:900;letter-spacing:-0.03em;color:#fff;line-height:1.1;">
+      <span style="color:#1b6b2f;">HTML</span> Slide Editor
+    </div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.35);margin-top:8px;letter-spacing:0.1em;">EDIT · ARRANGE · PRESENT</div>
+  </div>
   <div class="upload-area" id="upload-area">
     <div class="upload-icon">📑</div>
     <div class="upload-text">スライドHTMLをドロップ</div>
@@ -427,9 +447,9 @@ body {
     <a class="view-link" id="view-link" href="view.html" target="_blank" style="display:none">スライドショーを開く →</a>
     <div class="header-actions">
       <button class="btn btn-ghost" id="reload-btn">別のファイル</button>
-      <button class="btn btn-drag" id="drag-btn">配置モード</button>
       <button class="btn btn-update" id="update-btn">アップデート</button>
       <button class="btn btn-primary" id="download-btn">保存・ダウンロード</button>
+      <button class="btn btn-ghost" id="pdf-btn">PDF出力</button>
       <a class="btn btn-ghost" href="presenter.html" target="_blank" style="text-decoration:none">発表モード</a>
     </div>
   </div>
@@ -447,7 +467,7 @@ body {
 </div>
 
 <div class="toast" id="toast"></div>
-<div class="drag-badge" id="drag-badge">配置モード ON — 要素をドラッグして移動できます</div>
+<input type="file" id="img-file-input" accept="image/*" style="display:none">
 
 <script>
 /* ===== ステート管理 ===== */
@@ -532,6 +552,13 @@ function initEditor(html) {
     '.content>*,.list-area>*,.ba-wrap>*,.step-list>*,.cols>*,.slide-num{transition:outline 0.12s}' +
     '.content>*:hover,.list-area>*:hover,.ba-wrap>*:hover,.step-list>*:hover,.cols>*:hover,.slide-num:hover{outline:1px dashed rgba(27,107,47,0.4);cursor:text}' +
     '[contenteditable=true]{outline:2px solid #1b6b2f!important;background:rgba(27,107,47,0.04);cursor:text}' +
+    '.inserted-img{position:absolute;z-index:15;cursor:move;outline:1px solid transparent;transition:outline 0.12s}' +
+    '.inserted-img:hover{outline:1px dashed #1b6b2f}' +
+    '.inserted-img.selected{outline:2px solid #1b6b2f}' +
+    '.inserted-img img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}' +
+    '.inserted-img .img-resize{position:absolute;right:-4px;bottom:-4px;width:10px;height:10px;background:#1b6b2f;border:1px solid #fff;cursor:nwse-resize;border-radius:2px;z-index:16}' +
+    '.inserted-img .img-delete{position:absolute;top:-8px;right:-8px;width:16px;height:16px;background:#cc2222;color:#fff;border:1px solid #fff;border-radius:50%;font-size:10px;line-height:14px;text-align:center;cursor:pointer;z-index:16;display:none}' +
+    '.inserted-img.selected .img-delete{display:block}' +
     '</style></head>'
   );
 
@@ -678,9 +705,6 @@ function goToSlide(idx) {
 
   /* 編集パネル構築 */
   buildEditPanel(idx);
-
-  /* 配置モード中ならドラッグハンドラを再セットアップ */
-  if (isDragMode) setupDragForCurrentSlide();
 }
 
 /* ===== 編集パネル構築 ===== */
@@ -697,9 +721,18 @@ function buildEditPanel(idx) {
   let html = '<h2>Slide ' + (idx + 1) +
     ' <span class="slide-type-badge ' + badge + '">' + type + '</span></h2>';
   html += '<div class="slide-actions">' +
-    '<button class="btn-slide-action btn-copy-slide" id="copy-slide-btn">+ このスライドをコピー</button>' +
+    '<button class="btn-slide-action btn-copy-slide" id="copy-slide-btn">+ コピー</button>' +
     '<button class="btn-slide-action btn-delete-slide" id="delete-slide-btn">削除</button>' +
     '</div>';
+
+  /* 画像挿入ボタン */
+  html += '<div class="img-add-section">' +
+    '<span class="edit-label-text">画像を追加</span>' +
+    '<div class="img-shape-btns">' +
+    '<button class="img-shape-btn" onclick="addImageToSlide(\'rect\')"><span class="shape-icon">▬</span>長方形</button>' +
+    '<button class="img-shape-btn" onclick="addImageToSlide(\'square\')"><span class="shape-icon">■</span>正方形</button>' +
+    '<button class="img-shape-btn" onclick="addImageToSlide(\'circle\')"><span class="shape-icon">●</span>丸型</button>' +
+    '</div></div>';
 
   const elementMap = [];
   let eidx = 0;
@@ -875,176 +908,220 @@ document.getElementById('download-btn').addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
-/* ===== プレビュー直接編集（インライン編集） ===== */
+/* ===== 統合インタラクション（クリック=編集 / ドラッグ=移動） ===== */
 const INLINE_SELS = '.eyebrow,.main-title,.sub-title,.section-title,.chapter-num,.key-msg,.key-sub,.list-heading,.list-item,.list-footer,.profile-name,.profile-title,.profile-bio,.ba-label,.ba-text,.ba-arrow,.step-text,.step-footer,.col-icon,.col-title,.col-desc,.work-title,.work-text,.work-note,.cta-title,.cta-sub,.slide-num';
+const DRAG_THRESHOLD = 5;
 
 function setupInlineEditing() {
   if (!iframeDoc) return;
 
-  /* クリックでインライン編集を開始 */
-  iframeDoc.addEventListener('click', (e) => {
-    if (isDragMode) return;
+  let downTarget = null, downX = 0, downY = 0, origTX = 0, origTY = 0;
+  let dragging = false;
+  let resizing = false, resizeTarget = null, resizeStartW = 0, resizeStartH = 0, resizeStartX = 0, resizeStartY = 0;
+  let selectedImg = null;
+
+  /* === マウスダウン === */
+  iframeDoc.addEventListener('mousedown', (e) => {
     e.stopPropagation();
 
-    const target = e.target.closest(INLINE_SELS);
-
-    /* 前の編集を終了・同期 */
-    const prev = iframeDoc.querySelector('[contenteditable="true"]');
-    if (prev && prev !== target) {
-      prev.contentEditable = false;
-      buildEditPanel(currentSlide);
+    /* リサイズハンドル */
+    if (e.target.classList.contains('img-resize')) {
+      resizing = true;
+      resizeTarget = e.target.parentElement;
+      resizeStartW = resizeTarget.offsetWidth;
+      resizeStartH = resizeTarget.offsetHeight;
+      resizeStartX = e.clientX;
+      resizeStartY = e.clientY;
+      e.preventDefault();
+      return;
     }
 
-    if (target) {
-      target.contentEditable = true;
-      target.focus();
-    } else if (prev) {
-      prev.contentEditable = false;
-      buildEditPanel(currentSlide);
-    }
-  }, true);
-
-  /* キーボード制御 */
-  iframeDoc.addEventListener('keydown', (e) => {
-    if (isDragMode) return;
-    const editing = iframeDoc.querySelector('[contenteditable="true"]');
-
-    if (e.key === 'Escape' && editing) {
-      editing.contentEditable = false;
+    /* 削除ボタン */
+    if (e.target.classList.contains('img-delete')) {
+      e.target.parentElement.remove();
+      selectedImg = null;
       buildEditPanel(currentSlide);
       return;
     }
 
-    e.stopPropagation();
+    /* ドラッグ対象を特定 */
+    const imgTarget = e.target.closest('.inserted-img');
+    const textTarget = e.target.closest(INLINE_SELS);
+    const target = imgTarget || textTarget;
+    if (!target) {
+      /* 空白クリック → 編集終了・選択解除 */
+      finishEditing();
+      deselectImg();
+      return;
+    }
 
-    /* 編集中でないときは矢印キーでスライド移動 */
-    if (!editing) {
+    downTarget = target;
+    downX = e.clientX;
+    downY = e.clientY;
+    dragging = false;
+
+    /* 移動元のtranslate値を取得 */
+    if (imgTarget) {
+      origTX = parseInt(imgTarget.style.left) || 0;
+      origTY = parseInt(imgTarget.style.top) || 0;
+    } else {
+      const t = target.style.transform || '';
+      const m = t.match(/translate\(\s*([^,]+)px\s*,\s*([^)]+)px\s*\)/);
+      origTX = m ? parseFloat(m[1]) : 0;
+      origTY = m ? parseFloat(m[2]) : 0;
+    }
+
+    e.preventDefault();
+  }, true);
+
+  /* === マウスムーブ === */
+  iframeDoc.addEventListener('mousemove', (e) => {
+    /* リサイズ中 */
+    if (resizing && resizeTarget) {
+      const dx = e.clientX - resizeStartX;
+      const dy = e.clientY - resizeStartY;
+      const shape = resizeTarget.dataset.shape;
+      if (shape === 'square' || shape === 'circle') {
+        const d = Math.max(dx, dy);
+        resizeTarget.style.width  = Math.max(20, resizeStartW + d) + 'px';
+        resizeTarget.style.height = Math.max(20, resizeStartW + d) + 'px';
+      } else {
+        resizeTarget.style.width  = Math.max(30, resizeStartW + dx) + 'px';
+        resizeTarget.style.height = Math.max(20, resizeStartH + dy) + 'px';
+      }
+      return;
+    }
+
+    if (!downTarget) return;
+    const dx = e.clientX - downX;
+    const dy = e.clientY - downY;
+
+    if (!dragging && (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)) {
+      dragging = true;
+      finishEditing();
+    }
+
+    if (dragging) {
+      if (downTarget.classList.contains('inserted-img')) {
+        downTarget.style.left = (origTX + dx) + 'px';
+        downTarget.style.top  = (origTY + dy) + 'px';
+      } else {
+        downTarget.style.transform = 'translate(' + (origTX + dx) + 'px,' + (origTY + dy) + 'px)';
+      }
+    }
+  });
+
+  /* === マウスアップ === */
+  iframeDoc.addEventListener('mouseup', (e) => {
+    if (resizing) { resizing = false; resizeTarget = null; return; }
+    if (!downTarget) return;
+
+    if (!dragging) {
+      /* クリック → テキスト編集 or 画像選択 */
+      if (downTarget.classList.contains('inserted-img')) {
+        deselectImg();
+        selectedImg = downTarget;
+        downTarget.classList.add('selected');
+      } else if (downTarget.matches(INLINE_SELS)) {
+        deselectImg();
+        finishEditing();
+        downTarget.contentEditable = true;
+        downTarget.focus();
+      }
+    }
+    downTarget = null;
+    dragging = false;
+  });
+
+  /* === キーボード === */
+  iframeDoc.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    const editing = iframeDoc.querySelector('[contenteditable="true"]');
+
+    /* Delete / Backspace で選択中の画像を削除 */
+    if (!editing && selectedImg && (e.key === 'Delete' || e.key === 'Backspace')) {
+      e.preventDefault();
+      selectedImg.remove();
+      selectedImg = null;
+      buildEditPanel(currentSlide);
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      if (editing) { finishEditing(); return; }
+      if (selectedImg) { deselectImg(); return; }
+    }
+
+    if (!editing && !selectedImg) {
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); goToSlide(currentSlide + 1); }
       if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); goToSlide(currentSlide - 1); }
     }
   }, true);
-}
 
-/* ===== 配置モード（ドラッグ＆ドロップ） ===== */
-let isDragMode = false;
-let dragCleanup = null;
-
-document.getElementById('drag-btn').addEventListener('click', () => {
-  isDragMode = !isDragMode;
-  document.getElementById('drag-btn').classList.toggle('active', isDragMode);
-  document.getElementById('drag-badge').classList.toggle('show', isDragMode);
-  if (isDragMode) {
-    enableDragMode();
-  } else {
-    disableDragMode();
-  }
-});
-
-function enableDragMode() {
-  /* インライン編集を終了 */
-  if (iframeDoc) {
-    iframeDoc.querySelectorAll('[contenteditable="true"]').forEach(el => {
-      el.contentEditable = false;
-    });
-  }
-  setupDragForCurrentSlide();
-}
-
-function disableDragMode() {
-  cleanupDrag();
-}
-
-function cleanupDrag() {
-  if (!iframeDoc) return;
-  iframeDoc.querySelectorAll('[data-draggable]').forEach(el => {
-    el.style.cursor = '';
-    el.style.removeProperty('outline');
-    el.removeAttribute('data-draggable');
-  });
-  if (dragCleanup) {
-    dragCleanup();
-    dragCleanup = null;
-  }
-}
-
-function setupDragForCurrentSlide() {
-  cleanupDrag();
-  if (!iframeDoc) return;
-
-  const slideEl = iframeDoc.querySelectorAll('.slide-page')[currentSlide];
-  if (!slideEl) return;
-
-  const content = slideEl.querySelector('.content');
-  if (!content) return;
-
-  /* ドラッグ可能な要素を収集（コンテナは子要素をバラして個別にドラッグ可能にする） */
-  const draggables = [];
-  const containerSels = ['.list-area', '.ba-wrap', '.step-list', '.cols'];
-
-  Array.from(content.children).forEach(child => {
-    let expanded = false;
-    for (const sel of containerSels) {
-      if (child.matches && child.matches(sel)) {
-        Array.from(child.children).forEach(c => draggables.push(c));
-        expanded = true;
-        break;
-      }
-    }
-    if (!expanded) draggables.push(child);
-  });
-
-  const slideNum = slideEl.querySelector('.slide-num');
-  const logo = slideEl.querySelector('.logo');
-  if (slideNum) draggables.push(slideNum);
-  if (logo) draggables.push(logo);
-
-  let dragEl = null, startX = 0, startY = 0, origX = 0, origY = 0;
-
-  draggables.forEach(el => {
-    el.setAttribute('data-draggable', 'true');
-    el.style.cursor = 'move';
-    el.style.outline = '1px dashed rgba(255,102,0,0.4)';
-  });
-
-  function onMouseDown(e) {
-    const el = e.target.closest('[data-draggable]');
-    if (!el) return;
-    dragEl = el;
-    startX = e.clientX;
-    startY = e.clientY;
-    const t = el.style.transform || '';
-    const m = t.match(/translate\(\s*([^,]+)px\s*,\s*([^)]+)px\s*\)/);
-    origX = m ? parseFloat(m[1]) : 0;
-    origY = m ? parseFloat(m[2]) : 0;
-    el.style.outline = '2px solid #ff6600';
-    e.preventDefault();
-    e.stopPropagation();
-  }
-
-  function onMouseMove(e) {
-    if (!dragEl) return;
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    dragEl.style.transform = 'translate(' + (origX + dx) + 'px, ' + (origY + dy) + 'px)';
-  }
-
-  function onMouseUp() {
-    if (dragEl) {
-      dragEl.style.outline = '1px dashed rgba(255,102,0,0.4)';
-      dragEl = null;
+  function finishEditing() {
+    const prev = iframeDoc.querySelector('[contenteditable="true"]');
+    if (prev) {
+      prev.contentEditable = false;
+      buildEditPanel(currentSlide);
     }
   }
+  function deselectImg() {
+    if (selectedImg) { selectedImg.classList.remove('selected'); selectedImg = null; }
+    iframeDoc.querySelectorAll('.inserted-img.selected').forEach(el => el.classList.remove('selected'));
+  }
+}
 
-  iframeDoc.addEventListener('mousedown', onMouseDown);
-  iframeDoc.addEventListener('mousemove', onMouseMove);
-  iframeDoc.addEventListener('mouseup', onMouseUp);
+/* ===== 画像挿入 ===== */
+let pendingImgShape = 'rect';
 
-  dragCleanup = () => {
-    iframeDoc.removeEventListener('mousedown', onMouseDown);
-    iframeDoc.removeEventListener('mousemove', onMouseMove);
-    iframeDoc.removeEventListener('mouseup', onMouseUp);
+function addImageToSlide(shape) {
+  pendingImgShape = shape;
+  document.getElementById('img-file-input').click();
+}
+
+document.getElementById('img-file-input').addEventListener('change', function() {
+  if (!this.files.length || !iframeDoc) return;
+  const file = this.files[0];
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target.result;
+    const slide = iframeDoc.querySelectorAll('.slide-page')[currentSlide].querySelector('.slide');
+    if (!slide) return;
+
+    const shape = pendingImgShape;
+    const div = iframeDoc.createElement('div');
+    div.className = 'inserted-img';
+    div.dataset.shape = shape;
+
+    /* 形状ごとのサイズ設定 */
+    let w, h, br;
+    if (shape === 'rect')   { w = 130; h = 73; br = '4px'; }
+    if (shape === 'square') { w = 80;  h = 80; br = '4px'; }
+    if (shape === 'circle') { w = 80;  h = 80; br = '50%'; }
+
+    div.style.cssText = 'position:absolute;left:' + (195 - w/2) + 'px;top:' + (110 - h/2) + 'px;width:' + w + 'px;height:' + h + 'px;z-index:15;border-radius:' + br + ';overflow:hidden;';
+
+    const img = iframeDoc.createElement('img');
+    img.src = dataUrl;
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;';
+
+    const resizeHandle = iframeDoc.createElement('div');
+    resizeHandle.className = 'img-resize';
+
+    const deleteBtn = iframeDoc.createElement('div');
+    deleteBtn.className = 'img-delete';
+    deleteBtn.textContent = '×';
+
+    div.appendChild(img);
+    div.appendChild(resizeHandle);
+    div.appendChild(deleteBtn);
+    slide.appendChild(div);
+
+    showToast('画像を挿入しました');
   };
-}
+  reader.readAsDataURL(file);
+  this.value = '';
+});
 
 /* ===== アップデート（localStorageに保存） ===== */
 function getCleanHTML() {
@@ -1106,6 +1183,63 @@ function showLastUpdated() {
     link.style.display = '';
   }
 }
+
+/* ===== PDFエクスポート ===== */
+document.getElementById('pdf-btn').addEventListener('click', async () => {
+  if (!iframeDoc) return;
+  showToast('PDF生成中…');
+
+  /* 全スライドを画像化してPDFにする */
+  const pages = iframeDoc.querySelectorAll('.slide-page');
+  const total = pages.length;
+  const baseW = 390, baseH = Math.round(390 * 9 / 16);
+
+  /* html2canvasをCDNから読み込み */
+  if (!window.html2canvas) {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    document.head.appendChild(s);
+    await new Promise(r => s.onload = r);
+  }
+  /* jsPDFをCDNから読み込み */
+  if (!window.jspdf) {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js';
+    document.head.appendChild(s);
+    await new Promise(r => s.onload = r);
+  }
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [baseW * 2, baseH * 2] });
+
+  const savedSlide = currentSlide;
+
+  for (let i = 0; i < total; i++) {
+    pages.forEach((p, j) => p.classList.toggle('active', j === i));
+
+    /* スライド要素をキャプチャ */
+    const slideEl = pages[i].querySelector('.slide');
+    if (!slideEl) continue;
+
+    try {
+      const canvas = await html2canvas(slideEl, {
+        width: baseW, height: baseH, scale: 2,
+        useCORS: true, allowTaint: true, logging: false
+      });
+
+      if (i > 0) pdf.addPage();
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, baseW * 2, baseH * 2);
+    } catch (err) {
+      console.warn('Slide ' + (i+1) + ' capture failed:', err);
+    }
+  }
+
+  /* 元のスライドに戻す */
+  pages.forEach((p, j) => p.classList.toggle('active', j === savedSlide));
+
+  pdf.save('slideshow.pdf');
+  showToast('PDF出力完了！');
+});
 
 /* ===== 別のファイル読み込み ===== */
 document.getElementById('reload-btn').addEventListener('click', () => {
