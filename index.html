@@ -82,11 +82,15 @@ body {
 .btn-primary { background: #1b6b2f; color: #fff; }
 .btn-primary:hover { background: #228b3b; }
 .btn-ghost {
-  background: transparent;
-  color: rgba(255,255,255,0.6);
-  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.25);
 }
-.btn-ghost:hover { background: rgba(255,255,255,0.08); }
+.btn-ghost:hover { background: rgba(255,255,255,0.2); }
+.btn-pdf { background: #1565c0; color: #fff; border: none; }
+.btn-pdf:hover { background: #1976d2; }
+.btn-present { background: #6a1b9a; color: #fff; border: none; }
+.btn-present:hover { background: #7b1fa2; }
 
 /* ===== メインレイアウト ===== */
 .main {
@@ -449,8 +453,8 @@ body {
       <button class="btn btn-ghost" id="reload-btn">別のファイル</button>
       <button class="btn btn-update" id="update-btn">アップデート</button>
       <button class="btn btn-primary" id="download-btn">保存・ダウンロード</button>
-      <button class="btn btn-ghost" id="pdf-btn">PDF出力</button>
-      <a class="btn btn-ghost" href="presenter.html" target="_blank" style="text-decoration:none">発表モード</a>
+      <button class="btn btn-pdf" id="pdf-btn">PDF出力</button>
+      <a class="btn btn-present" href="presenter.html" target="_blank" style="text-decoration:none">発表モード</a>
     </div>
   </div>
   <div class="main">
