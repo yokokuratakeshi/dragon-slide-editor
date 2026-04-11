@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>スライドショー ビューアー</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; overflow: hidden; font-family: 'Hiragino Kaku Gothic ProN', sans-serif; }
+iframe { width: 100vw; height: 100vh; border: none; }
+.no-data {
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 16px;
+}
+.no-data p {
+  font-size: 16px;
+  text-align: center;
+  line-height: 1.8;
+  color: rgba(255,255,255,0.7);
+}
+.no-data a {
+  color: #4fc3f7;
+  text-decoration: none;
+  font-size: 14px;
+}
+.no-data a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div id="container"></div>
+<script>
+const saved = localStorage.getItem('slideshow_html');
+const isPresenter = new URLSearchParams(location.search).has('presenter');
+
+if (saved) {
+  let html = saved;
+
+  /* プレゼンターモード時はナビを非表示にし、操作を無効化 */
+  if (isPresenter) {
+    html = html.replace('</head>',
+      '<style>#nav-bar,#fullscreen-btn{display:none!important}</style></head>'
+    );
+  }
+
+  const iframe = document.createElement('iframe');
+  iframe.srcdoc = html;
+  iframe.style.width = '100vw';
+  iframe.style.height = '100vh';
+  iframe.style.border = 'none';
+  if (isPresenter) iframe.style.pointerEvents = 'none';
+  document.getElementById('container').appendChild(iframe);
+
+  /* プレゼンターからの同期を受信（BroadcastChannel） */
+  if (isPresenter) {
+    const bc = new BroadcastChannel('slideshow_sync');
+    iframe.onload = () => {
+      bc.onmessage = (e) => {
+        if (e.data.type === 'goto') {
+          const pages = iframe.contentDocument.querySelectorAll('.slide-page');
+          pages.forEach((p, i) => p.classList.toggle('active', i === e.data.index));
+        }
+      };
+    };
+  }
+} else {
+  document.getElementById('container').innerHTML =
+    '<div class="no-data">' +
+    '<p>スライドデータがありません。<br>エディターで「アップデート」ボタンを押してください。</p>' +
+    '<a href="index.html">エディターを開く →</a>' +
+    '</div>';
+}
+
+/* エディター側でアップデートされたら自動リロード */
+window.addEventListener('storage', (e) => {
+  if (e.key === 'slideshow_html' && e.newValue) {
+    location.reload();
+  }
+});
+</script>
+</body>
+</html>

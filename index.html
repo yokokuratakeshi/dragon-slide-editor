@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>スライドエディター</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  background: #0f0f1a;
+  color: #e8e8e8;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ===== アップロード画面 ===== */
+#upload-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #0f0f1a;
+  z-index: 10000;
+}
+.upload-area {
+  width: 420px;
+  height: 260px;
+  border: 2px dashed rgba(255,255,255,0.25);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.upload-area:hover, .upload-area.dragover {
+  border-color: #1b6b2f;
+  background: rgba(27,107,47,0.05);
+}
+.upload-icon { font-size: 52px; margin-bottom: 16px; }
+.upload-text { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+.upload-sub { font-size: 13px; color: rgba(255,255,255,0.45); }
+#file-input { display: none; }
+
+/* ===== ヘッダー ===== */
+.header {
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  background: #16213e;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  height: 52px;
+  gap: 16px;
+}
+.header-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  white-space: nowrap;
+}
+.header-title .accent { color: #1b6b2f; }
+.slide-counter {
+  font-size: 13px;
+  color: rgba(255,255,255,0.55);
+  margin-left: auto;
+}
+.header-actions { display: flex; gap: 8px; margin-left: 16px; }
+.btn {
+  padding: 7px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.btn-primary { background: #1b6b2f; color: #fff; }
+.btn-primary:hover { background: #228b3b; }
+.btn-ghost {
+  background: transparent;
+  color: rgba(255,255,255,0.6);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+.btn-ghost:hover { background: rgba(255,255,255,0.08); }
+
+/* ===== メインレイアウト ===== */
+.main {
+  display: flex;
+  height: calc(100vh - 52px);
+}
+
+/* ===== サイドバー ===== */
+.sidebar {
+  width: 72px;
+  background: #16213e;
+  border-right: 1px solid rgba(255,255,255,0.06);
+  overflow-y: auto;
+  padding: 8px 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+.slide-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 34px;
+  margin: 2px auto;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.4);
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+.slide-thumb:hover {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.7);
+}
+.slide-thumb.active {
+  background: #1b6b2f;
+  color: #fff;
+  font-weight: 700;
+}
+.slide-thumb.section::after {
+  content: '';
+  position: absolute;
+  right: 4px; top: 4px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #4caf50;
+}
+.slide-thumb.cta::after {
+  content: '';
+  position: absolute;
+  right: 4px; top: 4px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #cc2222;
+}
+
+/* ===== プレビューエリア ===== */
+.preview-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  position: relative;
+  overflow: hidden;
+}
+.preview-container { position: relative; }
+#preview-iframe {
+  border: none;
+  display: block;
+}
+
+/* ===== 編集パネル ===== */
+.edit-panel {
+  width: 400px;
+  background: #fafafa;
+  border-left: 1px solid #e0e0e0;
+  overflow-y: auto;
+  padding: 20px;
+  color: #333;
+}
+.edit-panel::-webkit-scrollbar { width: 6px; }
+.edit-panel::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+.edit-panel h2 {
+  font-size: 14px;
+  font-weight: 800;
+  color: #222;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.slide-type-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.badge-normal  { background: #e8f5e9; color: #1b6b2f; }
+.badge-section { background: #1b6b2f; color: #fff; }
+.badge-cta     { background: #cc2222; color: #fff; }
+.edit-hint {
+  font-size: 10px;
+  color: #999;
+  margin-bottom: 16px;
+  line-height: 1.7;
+  padding: 8px 10px;
+  background: #f0f0f0;
+  border-radius: 6px;
+}
+.edit-hint code {
+  background: #e0e0e0;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+.edit-group {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #eee;
+}
+.edit-group:last-child { border-bottom: none; }
+.edit-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+.edit-label-text {
+  font-size: 11px;
+  font-weight: 700;
+  color: #888;
+  letter-spacing: 0.03em;
+}
+.font-size-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.font-size-ctrl label {
+  font-size: 10px;
+  color: #aaa;
+}
+.font-size-input {
+  width: 48px;
+  padding: 3px 4px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 11px;
+  text-align: center;
+  font-family: inherit;
+  background: #fff;
+}
+.font-size-input:focus {
+  outline: none;
+  border-color: #1b6b2f;
+}
+.edit-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 32px;
+  background: #fff;
+  transition: border-color 0.2s;
+}
+.edit-textarea:focus {
+  outline: none;
+  border-color: #1b6b2f;
+  box-shadow: 0 0 0 3px rgba(27,107,47,0.08);
+}
+.no-edit-msg {
+  color: #aaa;
+  font-size: 13px;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+/* ===== アップデート関連 ===== */
+.btn-update { background: #e67e22; color: #fff; }
+.btn-update:hover { background: #f39c12; }
+.last-updated {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  white-space: nowrap;
+}
+.view-link {
+  font-size: 11px;
+  color: #4fc3f7;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.view-link:hover { text-decoration: underline; }
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  background: #1b6b2f;
+  color: #fff;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 99999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.auto-load-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 20px;
+  background: #1a3a5c;
+  font-size: 12px;
+  color: rgba(255,255,255,0.7);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.auto-load-banner .btn { padding: 4px 12px; font-size: 11px; }
+
+/* ===== 配置モード ===== */
+.btn-drag { background: #9c27b0; color: #fff; }
+.btn-drag:hover { background: #ab47bc; }
+.btn-drag.active {
+  background: #7b1fa2;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+}
+.drag-badge {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #9c27b0;
+  color: #fff;
+  padding: 6px 20px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  z-index: 9998;
+  display: none;
+}
+.drag-badge.show { display: block; }
+
+/* ===== サイドバーD&D並べ替え ===== */
+.slide-thumb[draggable="true"] { cursor: grab; }
+.slide-thumb.dragging { opacity: 0.3; }
+.slide-thumb.drag-over-top { box-shadow: 0 -2px 0 0 #1b6b2f inset; }
+.slide-thumb.drag-over-bottom { box-shadow: 0 2px 0 0 #1b6b2f inset; }
+
+/* ===== スライド操作ボタン ===== */
+.slide-actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.btn-slide-action {
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  border: none;
+  transition: background 0.2s;
+}
+.btn-copy-slide {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+.btn-copy-slide:hover { background: #bbdefb; }
+.btn-delete-slide {
+  background: #fce4ec;
+  color: #c62828;
+}
+.btn-delete-slide:hover { background: #ffcdd2; }
+
+/* ===== テキスト編集ツールバー ===== */
+.edit-toolbar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.tb-btn {
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid #ddd;
+  background: #fff;
+  font-family: inherit;
+  transition: background 0.15s;
+  line-height: 1;
+}
+.tb-green { color: #1b6b2f; border-color: #a5d6a7; }
+.tb-green:hover { background: #e8f5e9; }
+.tb-red { color: #cc2222; border-color: #ef9a9a; }
+.tb-red:hover { background: #fce4ec; }
+.tb-clear { color: #888; }
+.tb-clear:hover { background: #f5f5f5; }
+.tb-br { color: #1565c0; border-color: #90caf9; }
+.tb-br:hover { background: #e3f2fd; }
+</style>
+</head>
+<body>
+
+<!-- ===== アップロード画面 ===== -->
+<div id="upload-screen">
+  <div class="upload-area" id="upload-area">
+    <div class="upload-icon">📑</div>
+    <div class="upload-text">スライドHTMLをドロップ</div>
+    <div class="upload-sub">またはクリックしてファイルを選択</div>
+  </div>
+  <input type="file" id="file-input" accept=".html,.htm">
+</div>
+
+<!-- ===== エディター画面 ===== -->
+<div id="editor-screen" style="display:none">
+  <div class="header">
+    <div class="header-title"><span class="accent">▶</span> スライドエディター</div>
+    <div class="slide-counter" id="slide-counter">— / —</div>
+    <span class="last-updated" id="last-updated"></span>
+    <a class="view-link" id="view-link" href="view.html" target="_blank" style="display:none">スライドショーを開く →</a>
+    <div class="header-actions">
+      <button class="btn btn-ghost" id="reload-btn">別のファイル</button>
+      <button class="btn btn-drag" id="drag-btn">配置モード</button>
+      <button class="btn btn-update" id="update-btn">アップデート</button>
+      <button class="btn btn-primary" id="download-btn">保存・ダウンロード</button>
+      <a class="btn btn-ghost" href="presenter.html" target="_blank" style="text-decoration:none">発表モード</a>
+    </div>
+  </div>
+  <div class="main">
+    <div class="sidebar" id="sidebar"></div>
+    <div class="preview-area" id="preview-area">
+      <div class="preview-container" id="preview-container">
+        <iframe id="preview-iframe"></iframe>
+      </div>
+    </div>
+    <div class="edit-panel" id="edit-panel">
+      <div class="no-edit-msg">HTMLファイルを読み込んでください</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="drag-badge" id="drag-badge">配置モード ON — 要素をドラッグして移動できます</div>
+
+<script>
+/* ===== ステート管理 ===== */
+let currentSlide = 0;
+let totalSlides = 0;
+let iframeDoc = null;
+
+/* ===== 編集対象テキスト要素の定義 ===== */
+const EDITABLE = [
+  { sel: '.eyebrow',       label: 'カテゴリ' },
+  { sel: '.main-title',    label: 'メインタイトル' },
+  { sel: '.sub-title',     label: 'サブタイトル' },
+  { sel: '.section-title', label: 'セクションタイトル' },
+  { sel: '.chapter-num',   label: '章番号' },
+  { sel: '.key-msg',       label: 'キーメッセージ' },
+  { sel: '.key-sub',       label: '補足テキスト' },
+  { sel: '.list-heading',  label: 'リスト見出し' },
+  { sel: '.list-item',     label: 'リスト項目', multi: true },
+  { sel: '.list-footer',   label: '注釈', multi: true },
+  { sel: '.profile-name',  label: '名前' },
+  { sel: '.profile-title', label: '肩書き' },
+  { sel: '.profile-bio',   label: 'プロフィール' },
+  { sel: '.ba-label',      label: 'BA ラベル', multi: true },
+  { sel: '.ba-text',       label: 'BA テキスト', multi: true },
+  { sel: '.ba-arrow',      label: '矢印' },
+  { sel: '.step-text',     label: 'ステップ', multi: true },
+  { sel: '.step-footer',   label: 'ステップ注釈' },
+  { sel: '.col-icon',      label: 'アイコン', multi: true },
+  { sel: '.col-title',     label: 'カラム見出し', multi: true },
+  { sel: '.col-desc',      label: 'カラム説明', multi: true },
+  { sel: '.work-title',    label: 'ワーク見出し' },
+  { sel: '.work-text',     label: 'ワーク内容' },
+  { sel: '.work-note',     label: 'ワーク注記' },
+  { sel: '.cta-title',     label: 'CTA タイトル' },
+  { sel: '.cta-sub',       label: 'CTA 補足' },
+  { sel: '.slide-num',     label: 'スライド番号' },
+];
+
+/* ===== アップロード処理 ===== */
+const uploadScreen  = document.getElementById('upload-screen');
+const uploadArea    = document.getElementById('upload-area');
+const fileInput     = document.getElementById('file-input');
+const editorScreen  = document.getElementById('editor-screen');
+
+uploadArea.addEventListener('click', () => fileInput.click());
+uploadArea.addEventListener('dragover', e => {
+  e.preventDefault();
+  uploadArea.classList.add('dragover');
+});
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadArea.classList.remove('dragover');
+  if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length) loadFile(fileInput.files[0]);
+});
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => initEditor(e.target.result);
+  reader.readAsText(file);
+}
+
+/* ===== エディター初期化 ===== */
+function initEditor(html) {
+  uploadScreen.style.display = 'none';
+  editorScreen.style.display = 'block';
+
+  const iframe = document.getElementById('preview-iframe');
+  const iframeW = 390;
+  const iframeH = Math.round(390 * 9 / 16);
+  iframe.style.width  = iframeW + 'px';
+  iframe.style.height = iframeH + 'px';
+
+  /* エディター用のCSS上書きを注入（ナビ非表示・スケール無効化・インライン編集） */
+  const mod = html.replace('</head>',
+    '<style id="__editor__">' +
+    '#nav-bar,#fullscreen-btn,#progress-bar{display:none!important}' +
+    '.slide{transform:none!important}' +
+    '.content>*,.list-area>*,.ba-wrap>*,.step-list>*,.cols>*,.slide-num{transition:outline 0.12s}' +
+    '.content>*:hover,.list-area>*:hover,.ba-wrap>*:hover,.step-list>*:hover,.cols>*:hover,.slide-num:hover{outline:1px dashed rgba(27,107,47,0.4);cursor:text}' +
+    '[contenteditable=true]{outline:2px solid #1b6b2f!important;background:rgba(27,107,47,0.04);cursor:text}' +
+    '</style></head>'
+  );
+
+  iframe.srcdoc = mod;
+  iframe.onload = () => {
+    iframeDoc   = iframe.contentDocument;
+    totalSlides = iframeDoc.querySelectorAll('.slide-page').length;
+
+    /* スライドショー内部のナビゲーションを無効化 */
+    iframe.contentWindow.goTo = function() {};
+
+    buildSidebar();
+    scalePreview();
+    setupInlineEditing();
+    goToSlide(0);
+  };
+}
+
+/* ===== サイドバー構築（D&D並べ替え対応） ===== */
+function buildSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.innerHTML = '';
+  let dragSrcIdx = null;
+
+  iframeDoc.querySelectorAll('.slide-page').forEach((p, i) => {
+    const slide = p.querySelector('.slide');
+    const thumb = document.createElement('div');
+    let cls = 'slide-thumb';
+    if (slide && slide.classList.contains('section-slide')) cls += ' section';
+    if (slide && slide.classList.contains('cta-slide'))     cls += ' cta';
+    if (i === currentSlide) cls += ' active';
+    thumb.className   = cls;
+    thumb.textContent  = String(i + 1).padStart(2, '0');
+    thumb.draggable    = true;
+    thumb.dataset.idx  = i;
+
+    thumb.addEventListener('click', () => goToSlide(i));
+
+    /* ドラッグ開始 */
+    thumb.addEventListener('dragstart', (e) => {
+      dragSrcIdx = i;
+      thumb.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    /* ドラッグオーバー */
+    thumb.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const rect = thumb.getBoundingClientRect();
+      const mid  = rect.top + rect.height / 2;
+      thumb.classList.remove('drag-over-top', 'drag-over-bottom');
+      thumb.classList.add(e.clientY < mid ? 'drag-over-top' : 'drag-over-bottom');
+    });
+
+    thumb.addEventListener('dragleave', () => {
+      thumb.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+
+    /* ドロップ */
+    thumb.addEventListener('drop', (e) => {
+      e.preventDefault();
+      thumb.classList.remove('drag-over-top', 'drag-over-bottom');
+      const dropIdx = parseInt(thumb.dataset.idx);
+      if (dragSrcIdx === null || dragSrcIdx === dropIdx) return;
+
+      /* iframe内の.slide-pageを並べ替え */
+      const pages    = Array.from(iframeDoc.querySelectorAll('.slide-page'));
+      const srcPage  = pages[dragSrcIdx];
+      const rect     = thumb.getBoundingClientRect();
+      const insertBefore = e.clientY < rect.top + rect.height / 2;
+      const refPage  = pages[dropIdx];
+
+      if (insertBefore) {
+        refPage.parentNode.insertBefore(srcPage, refPage);
+      } else {
+        refPage.parentNode.insertBefore(srcPage, refPage.nextSibling);
+      }
+
+      reindexSlides();
+      buildSidebar();
+
+      /* 移動後のスライドに遷移 */
+      const newPages = iframeDoc.querySelectorAll('.slide-page');
+      let newIdx = 0;
+      newPages.forEach((pg, idx) => { if (pg === srcPage) newIdx = idx; });
+      goToSlide(newIdx);
+      showToast('スライドを移動しました');
+    });
+
+    thumb.addEventListener('dragend', () => {
+      thumb.classList.remove('dragging');
+      dragSrcIdx = null;
+      sidebar.querySelectorAll('.slide-thumb').forEach(t => {
+        t.classList.remove('drag-over-top', 'drag-over-bottom');
+      });
+    });
+
+    sidebar.appendChild(thumb);
+  });
+}
+
+/* ===== プレビュースケーリング ===== */
+function scalePreview() {
+  const area      = document.getElementById('preview-area');
+  const container = document.getElementById('preview-container');
+  const iframe    = document.getElementById('preview-iframe');
+  if (!area || !container) return;
+
+  const iframeW = 390;
+  const iframeH = Math.round(390 * 9 / 16);
+  const scale   = Math.min(
+    (area.clientWidth  - 32) / iframeW,
+    (area.clientHeight - 32) / iframeH
+  );
+  container.style.width           = iframeW + 'px';
+  container.style.height          = iframeH + 'px';
+  container.style.transform       = 'scale(' + scale + ')';
+  container.style.transformOrigin = 'center center';
+  iframe.style.width  = iframeW + 'px';
+  iframe.style.height = iframeH + 'px';
+}
+window.addEventListener('resize', scalePreview);
+
+/* ===== スライドナビゲーション ===== */
+function goToSlide(idx) {
+  if (idx < 0 || idx >= totalSlides) return;
+  currentSlide = idx;
+
+  /* iframe内のスライド表示を切り替え */
+  iframeDoc.querySelectorAll('.slide-page').forEach((p, i) => {
+    p.classList.toggle('active', i === idx);
+  });
+
+  /* サイドバーのハイライト更新 */
+  document.querySelectorAll('.slide-thumb').forEach((t, i) => {
+    t.classList.toggle('active', i === idx);
+  });
+  const active = document.querySelector('.slide-thumb.active');
+  if (active) active.scrollIntoView({ block: 'nearest' });
+
+  /* カウンター更新 */
+  document.getElementById('slide-counter').textContent = (idx + 1) + ' / ' + totalSlides;
+
+  /* 編集パネル構築 */
+  buildEditPanel(idx);
+
+  /* 配置モード中ならドラッグハンドラを再セットアップ */
+  if (isDragMode) setupDragForCurrentSlide();
+}
+
+/* ===== 編集パネル構築 ===== */
+function buildEditPanel(idx) {
+  const panel    = document.getElementById('edit-panel');
+  const slideEl  = iframeDoc.querySelectorAll('.slide-page')[idx].querySelector('.slide');
+  const iframeWin = document.getElementById('preview-iframe').contentWindow;
+
+  /* スライドタイプ判定 */
+  let type = '通常', badge = 'badge-normal';
+  if (slideEl.classList.contains('section-slide')) { type = 'セクション'; badge = 'badge-section'; }
+  if (slideEl.classList.contains('cta-slide'))     { type = 'CTA';        badge = 'badge-cta'; }
+
+  let html = '<h2>Slide ' + (idx + 1) +
+    ' <span class="slide-type-badge ' + badge + '">' + type + '</span></h2>';
+  html += '<div class="slide-actions">' +
+    '<button class="btn-slide-action btn-copy-slide" id="copy-slide-btn">+ このスライドをコピー</button>' +
+    '<button class="btn-slide-action btn-delete-slide" id="delete-slide-btn">削除</button>' +
+    '</div>';
+
+  const elementMap = [];
+  let eidx = 0;
+
+  EDITABLE.forEach(cfg => {
+    /* 対象セレクタに合致する要素を検索（.content内を優先、なければslide直下） */
+    const els = slideEl.querySelectorAll(cfg.sel);
+    if (!els.length) return;
+
+    els.forEach((el, i) => {
+      const id    = 'e' + eidx;
+      const label = (cfg.multi && els.length > 1) ? cfg.label + ' ' + (i + 1) : cfg.label;
+      const fs    = Math.round(parseFloat(iframeWin.getComputedStyle(el).fontSize) || 14);
+      const content = el.innerHTML;
+      const rows  = Math.max(1, Math.min((content.match(/<br\s*\/?>/gi) || []).length + 2, 8));
+
+      html += '<div class="edit-group">';
+      html += '<div class="edit-label">';
+      html += '<span class="edit-label-text">' + label + '</span>';
+      html += '<div class="font-size-ctrl">';
+      html += '<label>サイズ</label>';
+      html += '<input type="number" class="font-size-input" id="s' + id + '" value="' + fs + '" min="4" max="200" data-idx="' + eidx + '">';
+      html += '<label>px</label>';
+      html += '</div></div>';
+      html += '<div class="edit-toolbar">' +
+        '<button class="tb-btn tb-green" data-ta="' + id + '" data-action="green">緑色</button>' +
+        '<button class="tb-btn tb-red" data-ta="' + id + '" data-action="red">赤色</button>' +
+        '<button class="tb-btn tb-clear" data-ta="' + id + '" data-action="clear">色解除</button>' +
+        '<button class="tb-btn tb-br" data-ta="' + id + '" data-action="br">改行↵</button>' +
+        '</div>';
+      html += '<textarea class="edit-textarea" id="' + id + '" rows="' + rows + '" data-idx="' + eidx + '">' + esc(content) + '</textarea>';
+      html += '</div>';
+
+      elementMap.push(el);
+      eidx++;
+    });
+  });
+
+  if (eidx === 0) {
+    html += '<div class="no-edit-msg">編集可能なテキストがありません</div>';
+  }
+
+  panel.innerHTML = html;
+  panel.scrollTop = 0;
+
+  /* イベントリスナー接続 */
+  panel.querySelectorAll('.edit-textarea').forEach(ta => {
+    const el = elementMap[parseInt(ta.dataset.idx)];
+    if (!el) return;
+    /* テキスト入力でリアルタイム反映 */
+    ta.addEventListener('input', () => { el.innerHTML = ta.value; });
+    /* フォーカス時にプレビュー内の要素をハイライト */
+    ta.addEventListener('focus', () => {
+      el.style.outline = '3px solid #ff6600';
+      el.style.outlineOffset = '2px';
+    });
+    ta.addEventListener('blur', () => {
+      el.style.outline = '';
+      el.style.outlineOffset = '';
+    });
+  });
+
+  panel.querySelectorAll('.font-size-input').forEach(inp => {
+    const el = elementMap[parseInt(inp.dataset.idx)];
+    if (!el) return;
+    inp.addEventListener('input', () => {
+      el.style.fontSize = inp.value + 'px';
+    });
+  });
+
+  /* ツールバーボタンのイベント */
+  panel.querySelectorAll('.tb-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const ta = document.getElementById(btn.dataset.ta);
+      if (!ta) return;
+      const action = btn.dataset.action;
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const val = ta.value;
+
+      if (action === 'br') {
+        /* カーソル位置に改行タグを挿入 */
+        ta.value = val.substring(0, start) + '<br/>' + val.substring(start);
+        ta.selectionStart = ta.selectionEnd = start + 5;
+      } else if (action === 'clear') {
+        /* 選択範囲内のspanタグを除去 */
+        if (start === end) return;
+        const sel = val.substring(start, end);
+        const cleaned = sel.replace(/<span class="[gr]">/g, '').replace(/<\/span>/g, '');
+        ta.value = val.substring(0, start) + cleaned + val.substring(end);
+        ta.selectionStart = start;
+        ta.selectionEnd = start + cleaned.length;
+      } else {
+        /* 選択範囲をspan.g or span.r で囲む */
+        if (start === end) return;
+        const cls = action === 'green' ? 'g' : 'r';
+        const sel = val.substring(start, end);
+        const wrapped = '<span class="' + cls + '">' + sel + '</span>';
+        ta.value = val.substring(0, start) + wrapped + val.substring(end);
+        ta.selectionStart = start;
+        ta.selectionEnd = start + wrapped.length;
+      }
+      ta.dispatchEvent(new Event('input'));
+      ta.focus();
+    });
+  });
+
+  /* スライドコピー・削除ボタン */
+  const copyBtn = document.getElementById('copy-slide-btn');
+  if (copyBtn) copyBtn.addEventListener('click', copyCurrentSlide);
+  const delBtn = document.getElementById('delete-slide-btn');
+  if (delBtn) delBtn.addEventListener('click', deleteCurrentSlide);
+}
+
+/* HTML特殊文字エスケープ */
+function esc(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/* ===== スライドコピー ===== */
+function copyCurrentSlide() {
+  if (!iframeDoc) return;
+  const pages = iframeDoc.querySelectorAll('.slide-page');
+  const current = pages[currentSlide];
+
+  /* 現在のスライドを複製 */
+  const clone = current.cloneNode(true);
+  clone.classList.remove('active');
+  current.after(clone);
+
+  /* 全スライドの data-index と slide-num を振り直す */
+  reindexSlides();
+  buildSidebar();
+  goToSlide(currentSlide + 1);
+  showToast('スライド ' + (currentSlide + 1) + ' をコピーしました');
+}
+
+/* ===== スライド削除 ===== */
+function deleteCurrentSlide() {
+  if (!iframeDoc || totalSlides <= 1) return;
+  if (!confirm('スライド ' + (currentSlide + 1) + ' を削除しますか？')) return;
+
+  const pages = iframeDoc.querySelectorAll('.slide-page');
+  pages[currentSlide].remove();
+
+  reindexSlides();
+  buildSidebar();
+  goToSlide(Math.min(currentSlide, totalSlides - 1));
+  showToast('スライドを削除しました');
+}
+
+/* スライド番号の振り直し */
+function reindexSlides() {
+  const allPages = iframeDoc.querySelectorAll('.slide-page');
+  totalSlides = allPages.length;
+  allPages.forEach((p, i) => {
+    p.setAttribute('data-index', i);
+    const num = p.querySelector('.slide-num');
+    if (num) num.textContent = String(i + 1).padStart(2, '0');
+  });
+}
+
+/* ===== ダウンロード処理 ===== */
+document.getElementById('download-btn').addEventListener('click', () => {
+  if (!iframeDoc) return;
+  const output = getCleanHTML();
+  const blob = new Blob([output], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'slideshow_edited.html';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+/* ===== プレビュー直接編集（インライン編集） ===== */
+const INLINE_SELS = '.eyebrow,.main-title,.sub-title,.section-title,.chapter-num,.key-msg,.key-sub,.list-heading,.list-item,.list-footer,.profile-name,.profile-title,.profile-bio,.ba-label,.ba-text,.ba-arrow,.step-text,.step-footer,.col-icon,.col-title,.col-desc,.work-title,.work-text,.work-note,.cta-title,.cta-sub,.slide-num';
+
+function setupInlineEditing() {
+  if (!iframeDoc) return;
+
+  /* クリックでインライン編集を開始 */
+  iframeDoc.addEventListener('click', (e) => {
+    if (isDragMode) return;
+    e.stopPropagation();
+
+    const target = e.target.closest(INLINE_SELS);
+
+    /* 前の編集を終了・同期 */
+    const prev = iframeDoc.querySelector('[contenteditable="true"]');
+    if (prev && prev !== target) {
+      prev.contentEditable = false;
+      buildEditPanel(currentSlide);
+    }
+
+    if (target) {
+      target.contentEditable = true;
+      target.focus();
+    } else if (prev) {
+      prev.contentEditable = false;
+      buildEditPanel(currentSlide);
+    }
+  }, true);
+
+  /* キーボード制御 */
+  iframeDoc.addEventListener('keydown', (e) => {
+    if (isDragMode) return;
+    const editing = iframeDoc.querySelector('[contenteditable="true"]');
+
+    if (e.key === 'Escape' && editing) {
+      editing.contentEditable = false;
+      buildEditPanel(currentSlide);
+      return;
+    }
+
+    e.stopPropagation();
+
+    /* 編集中でないときは矢印キーでスライド移動 */
+    if (!editing) {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); goToSlide(currentSlide + 1); }
+      if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); goToSlide(currentSlide - 1); }
+    }
+  }, true);
+}
+
+/* ===== 配置モード（ドラッグ＆ドロップ） ===== */
+let isDragMode = false;
+let dragCleanup = null;
+
+document.getElementById('drag-btn').addEventListener('click', () => {
+  isDragMode = !isDragMode;
+  document.getElementById('drag-btn').classList.toggle('active', isDragMode);
+  document.getElementById('drag-badge').classList.toggle('show', isDragMode);
+  if (isDragMode) {
+    enableDragMode();
+  } else {
+    disableDragMode();
+  }
+});
+
+function enableDragMode() {
+  /* インライン編集を終了 */
+  if (iframeDoc) {
+    iframeDoc.querySelectorAll('[contenteditable="true"]').forEach(el => {
+      el.contentEditable = false;
+    });
+  }
+  setupDragForCurrentSlide();
+}
+
+function disableDragMode() {
+  cleanupDrag();
+}
+
+function cleanupDrag() {
+  if (!iframeDoc) return;
+  iframeDoc.querySelectorAll('[data-draggable]').forEach(el => {
+    el.style.cursor = '';
+    el.style.removeProperty('outline');
+    el.removeAttribute('data-draggable');
+  });
+  if (dragCleanup) {
+    dragCleanup();
+    dragCleanup = null;
+  }
+}
+
+function setupDragForCurrentSlide() {
+  cleanupDrag();
+  if (!iframeDoc) return;
+
+  const slideEl = iframeDoc.querySelectorAll('.slide-page')[currentSlide];
+  if (!slideEl) return;
+
+  const content = slideEl.querySelector('.content');
+  if (!content) return;
+
+  /* ドラッグ可能な要素を収集（コンテナは子要素をバラして個別にドラッグ可能にする） */
+  const draggables = [];
+  const containerSels = ['.list-area', '.ba-wrap', '.step-list', '.cols'];
+
+  Array.from(content.children).forEach(child => {
+    let expanded = false;
+    for (const sel of containerSels) {
+      if (child.matches && child.matches(sel)) {
+        Array.from(child.children).forEach(c => draggables.push(c));
+        expanded = true;
+        break;
+      }
+    }
+    if (!expanded) draggables.push(child);
+  });
+
+  const slideNum = slideEl.querySelector('.slide-num');
+  const logo = slideEl.querySelector('.logo');
+  if (slideNum) draggables.push(slideNum);
+  if (logo) draggables.push(logo);
+
+  let dragEl = null, startX = 0, startY = 0, origX = 0, origY = 0;
+
+  draggables.forEach(el => {
+    el.setAttribute('data-draggable', 'true');
+    el.style.cursor = 'move';
+    el.style.outline = '1px dashed rgba(255,102,0,0.4)';
+  });
+
+  function onMouseDown(e) {
+    const el = e.target.closest('[data-draggable]');
+    if (!el) return;
+    dragEl = el;
+    startX = e.clientX;
+    startY = e.clientY;
+    const t = el.style.transform || '';
+    const m = t.match(/translate\(\s*([^,]+)px\s*,\s*([^)]+)px\s*\)/);
+    origX = m ? parseFloat(m[1]) : 0;
+    origY = m ? parseFloat(m[2]) : 0;
+    el.style.outline = '2px solid #ff6600';
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function onMouseMove(e) {
+    if (!dragEl) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    dragEl.style.transform = 'translate(' + (origX + dx) + 'px, ' + (origY + dy) + 'px)';
+  }
+
+  function onMouseUp() {
+    if (dragEl) {
+      dragEl.style.outline = '1px dashed rgba(255,102,0,0.4)';
+      dragEl = null;
+    }
+  }
+
+  iframeDoc.addEventListener('mousedown', onMouseDown);
+  iframeDoc.addEventListener('mousemove', onMouseMove);
+  iframeDoc.addEventListener('mouseup', onMouseUp);
+
+  dragCleanup = () => {
+    iframeDoc.removeEventListener('mousedown', onMouseDown);
+    iframeDoc.removeEventListener('mousemove', onMouseMove);
+    iframeDoc.removeEventListener('mouseup', onMouseUp);
+  };
+}
+
+/* ===== アップデート（localStorageに保存） ===== */
+function getCleanHTML() {
+  /* エディター用オーバーライドを一時除去してクリーンなHTMLを取得 */
+  const ov = iframeDoc.getElementById('__editor__');
+  if (ov) ov.remove();
+
+  iframeDoc.querySelectorAll('.slide').forEach(s => {
+    s.style.removeProperty('transform');
+  });
+  iframeDoc.querySelectorAll('[style]').forEach(el => {
+    el.style.removeProperty('outline');
+    el.style.removeProperty('outline-offset');
+    if (el.getAttribute('style') === '') el.removeAttribute('style');
+  });
+
+  const savedActive = currentSlide;
+  iframeDoc.querySelectorAll('.slide-page').forEach((p, i) => {
+    p.classList.toggle('active', i === 0);
+  });
+
+  const output = '<!DOCTYPE html>\n' + iframeDoc.documentElement.outerHTML;
+
+  /* エディター状態を復元 */
+  const style = iframeDoc.createElement('style');
+  style.id = '__editor__';
+  style.textContent =
+    '#nav-bar,#fullscreen-btn,#progress-bar{display:none!important}' +
+    '.slide{transform:none!important}';
+  iframeDoc.head.appendChild(style);
+  goToSlide(savedActive);
+
+  return output;
+}
+
+document.getElementById('update-btn').addEventListener('click', () => {
+  if (!iframeDoc) return;
+  const html = getCleanHTML();
+  localStorage.setItem('slideshow_html', html);
+  localStorage.setItem('slideshow_updated_at', new Date().toISOString());
+  showLastUpdated();
+  showToast('アップデート完了！スライドショーに反映されました');
+});
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+function showLastUpdated() {
+  const ts = localStorage.getItem('slideshow_updated_at');
+  const el = document.getElementById('last-updated');
+  const link = document.getElementById('view-link');
+  if (ts) {
+    const d = new Date(ts);
+    el.textContent = '最終更新: ' + d.toLocaleString('ja-JP');
+    link.style.display = '';
+  }
+}
+
+/* ===== 別のファイル読み込み ===== */
+document.getElementById('reload-btn').addEventListener('click', () => {
+  editorScreen.style.display = 'none';
+  uploadScreen.style.display = 'flex';
+  fileInput.value = '';
+});
+
+/* ===== キーボードナビゲーション ===== */
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); goToSlide(currentSlide + 1); }
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); goToSlide(currentSlide - 1); }
+  if (e.key === 'Home') { e.preventDefault(); goToSlide(0); }
+  if (e.key === 'End')  { e.preventDefault(); goToSlide(totalSlides - 1); }
+});
+
+/* ===== 起動時にlocalStorageから自動ロード ===== */
+(function autoLoad() {
+  const saved = localStorage.getItem('slideshow_html');
+  if (saved) {
+    initEditor(saved);
+    showLastUpdated();
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>プレゼンタービュー</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  background: #111;
+  color: #fff;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ===== ヘッダー ===== */
+.header {
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  height: 48px;
+  background: #1a1a2e;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  gap: 16px;
+}
+.header h1 { font-size: 14px; font-weight: 700; }
+.header h1 .accent { color: #1b6b2f; }
+.spacer { flex: 1; }
+.btn {
+  padding: 6px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.btn-start { background: #cc2222; color: #fff; }
+.btn-start:hover { background: #e02c2c; }
+.btn-start.active { background: #1b6b2f; }
+.btn-ghost {
+  background: transparent;
+  color: rgba(255,255,255,0.6);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+.btn-ghost:hover { background: rgba(255,255,255,0.05); }
+
+/* ===== メインレイアウト ===== */
+.main {
+  display: flex;
+  height: calc(100vh - 48px - 56px);
+  padding: 16px;
+  gap: 16px;
+}
+
+/* 現在のスライド */
+.current-panel {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.panel-label {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+.iframe-wrap {
+  flex: 1;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 次のスライド */
+.next-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.next-iframe-wrap {
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16/9;
+}
+.slide-iframe {
+  border: none;
+  pointer-events: none;
+}
+
+/* 情報パネル */
+.timer {
+  font-size: 56px;
+  font-weight: 200;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  line-height: 1;
+}
+.slide-info-text {
+  text-align: center;
+  font-size: 13px;
+  color: rgba(255,255,255,0.4);
+}
+.next-label {
+  text-align: center;
+  font-size: 11px;
+  color: rgba(255,255,255,0.25);
+  margin-top: 8px;
+}
+
+/* ===== 下部ナビ ===== */
+.bottom-nav {
+  height: 56px;
+  background: #1a1a2e;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 0 20px;
+}
+.nav-btn {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  padding: 8px 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  transition: background 0.2s;
+}
+.nav-btn:hover { background: rgba(255,255,255,0.2); }
+.nav-btn:disabled { opacity: 0.3; cursor: default; }
+.nav-counter {
+  font-size: 14px;
+  color: rgba(255,255,255,0.6);
+  min-width: 80px;
+  text-align: center;
+}
+
+/* ===== データなし画面 ===== */
+.no-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 16px;
+}
+.no-data p {
+  font-size: 16px;
+  color: rgba(255,255,255,0.6);
+  text-align: center;
+  line-height: 1.8;
+}
+.no-data a { color: #4fc3f7; text-decoration: none; }
+.no-data a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const saved = localStorage.getItem('slideshow_html');
+if (!saved) {
+  document.getElementById('app').innerHTML =
+    '<div class="no-data">' +
+    '<p>スライドデータがありません。<br>エディターで「アップデート」を押してください。</p>' +
+    '<a href="index.html">エディターを開く →</a>' +
+    '</div>';
+} else {
+  init(saved);
+}
+
+function init(html) {
+  /* ナビバー等を非表示にするCSSを注入 */
+  const mod = html.replace('</head>',
+    '<style id="__presenter__">' +
+    '#nav-bar,#fullscreen-btn,#progress-bar{display:none!important}' +
+    '</style></head>'
+  );
+
+  document.getElementById('app').innerHTML =
+    '<div class="header">' +
+    '  <h1><span class="accent">🎤</span> プレゼンタービュー</h1>' +
+    '  <div class="spacer"></div>' +
+    '  <a class="btn btn-ghost" href="index.html">エディターに戻る</a>' +
+    '  <button class="btn btn-start" id="start-btn">発表開始（別画面を開く）</button>' +
+    '</div>' +
+    '<div class="main">' +
+    '  <div class="current-panel">' +
+    '    <div class="panel-label">現在のスライド</div>' +
+    '    <div class="iframe-wrap" id="current-wrap">' +
+    '      <iframe class="slide-iframe" id="current-iframe"></iframe>' +
+    '    </div>' +
+    '  </div>' +
+    '  <div class="next-panel">' +
+    '    <div class="panel-label">次のスライド</div>' +
+    '    <div class="next-iframe-wrap" id="next-wrap">' +
+    '      <iframe class="slide-iframe" id="next-iframe"></iframe>' +
+    '    </div>' +
+    '    <div class="timer" id="timer">00:00</div>' +
+    '    <div class="slide-info-text" id="slide-info">— / —</div>' +
+    '    <div class="next-label">スペースキー / 矢印キーでページ送り</div>' +
+    '  </div>' +
+    '</div>' +
+    '<div class="bottom-nav">' +
+    '  <button class="nav-btn" id="prev-btn">◀ 前へ</button>' +
+    '  <div class="nav-counter" id="nav-counter">— / —</div>' +
+    '  <button class="nav-btn" id="next-btn">次へ ▶</button>' +
+    '</div>';
+
+  let cur = 0;
+  let total = 0;
+  let timerInterval = null;
+  let startTime = null;
+  let audienceWin = null;
+  const bc = new BroadcastChannel('slideshow_sync');
+
+  const curIframe  = document.getElementById('current-iframe');
+  const nextIframe = document.getElementById('next-iframe');
+
+  curIframe.srcdoc  = mod;
+  nextIframe.srcdoc = mod;
+
+  let loaded = 0;
+  function onLoad() {
+    loaded++;
+    if (loaded < 2) return;
+    total = curIframe.contentDocument.querySelectorAll('.slide-page').length;
+    scaleAll();
+    goTo(0);
+  }
+  curIframe.onload  = onLoad;
+  nextIframe.onload = onLoad;
+
+  /* ===== iframe スケーリング ===== */
+  function scaleAll() {
+    scaleOne('current-wrap', curIframe);
+    scaleOne('next-wrap', nextIframe);
+  }
+  function scaleOne(wrapId, iframe) {
+    const wrap = document.getElementById(wrapId);
+    if (!wrap) return;
+    const bW = 390, bH = Math.round(390 * 9 / 16);
+    iframe.style.width  = bW + 'px';
+    iframe.style.height = bH + 'px';
+    const s = Math.min((wrap.clientWidth - 16) / bW, (wrap.clientHeight - 16) / bH);
+    iframe.style.transform       = 'scale(' + s + ')';
+    iframe.style.transformOrigin = 'center center';
+  }
+  window.addEventListener('resize', scaleAll);
+
+  /* ===== スライドナビゲーション ===== */
+  function goTo(idx) {
+    if (idx < 0 || idx >= total) return;
+    cur = idx;
+
+    /* 現在のスライド */
+    curIframe.contentDocument.querySelectorAll('.slide-page').forEach((p, i) => {
+      p.classList.toggle('active', i === idx);
+    });
+
+    /* 次のスライド */
+    const ni = Math.min(idx + 1, total - 1);
+    nextIframe.contentDocument.querySelectorAll('.slide-page').forEach((p, i) => {
+      p.classList.toggle('active', i === ni);
+    });
+
+    const txt = (idx + 1) + ' / ' + total;
+    document.getElementById('slide-info').textContent  = txt;
+    document.getElementById('nav-counter').textContent = txt;
+    document.getElementById('prev-btn').disabled = idx <= 0;
+    document.getElementById('next-btn').disabled = idx >= total - 1;
+
+    /* 聴衆用ウィンドウに同期 */
+    bc.postMessage({ type: 'goto', index: idx });
+  }
+
+  document.getElementById('prev-btn').addEventListener('click', () => goTo(cur - 1));
+  document.getElementById('next-btn').addEventListener('click', () => goTo(cur + 1));
+
+  /* キーボード操作 */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+      e.preventDefault(); goTo(cur + 1);
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault(); goTo(cur - 1);
+    }
+    if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+    if (e.key === 'End')  { e.preventDefault(); goTo(total - 1); }
+  });
+
+  /* ===== タイマー ===== */
+  function updateTimer() {
+    if (!startTime) return;
+    const sec = Math.floor((Date.now() - startTime) / 1000);
+    const mm = String(Math.floor(sec / 60)).padStart(2, '0');
+    const ss = String(sec % 60).padStart(2, '0');
+    document.getElementById('timer').textContent = mm + ':' + ss;
+  }
+
+  /* ===== 発表開始 ===== */
+  document.getElementById('start-btn').addEventListener('click', function() {
+    if (!startTime) {
+      startTime = Date.now();
+      timerInterval = setInterval(updateTimer, 1000);
+      this.textContent = '発表中… クリックで終了';
+      this.classList.add('active');
+      audienceWin = window.open(
+        'view.html?presenter=true', 'slideshow_audience',
+        'width=1280,height=720,menubar=no,toolbar=no,location=no'
+      );
+      /* 聴衆画面が開いたら現在のスライドを同期 */
+      setTimeout(() => bc.postMessage({ type: 'goto', index: cur }), 500);
+    } else {
+      clearInterval(timerInterval);
+      startTime = null;
+      this.textContent = '発表開始（別画面を開く）';
+      this.classList.remove('active');
+      if (audienceWin && !audienceWin.closed) audienceWin.close();
+    }
+  });
+}
+</script>
+</body>
+</html>
