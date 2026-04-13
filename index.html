@@ -66,8 +66,69 @@ body {
 .slide-counter {
   font-size: 13px;
   color: rgba(255,255,255,0.55);
-  margin-left: auto;
 }
+
+/* ===== ズーム表示 ===== */
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+.zoom-controls .btn {
+  padding: 4px 8px;
+  font-size: 14px;
+  min-width: 28px;
+}
+.zoom-level {
+  font-size: 11px;
+  color: rgba(255,255,255,0.55);
+  min-width: 36px;
+  text-align: center;
+}
+
+/* ===== 挿入メニュー ===== */
+.insert-menu-wrap {
+  position: relative;
+}
+.insert-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  padding: 4px 0;
+  z-index: 99999;
+  min-width: 140px;
+  display: none;
+}
+.insert-dropdown.open { display: block; }
+.insert-item {
+  padding: 7px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.insert-item:hover { background: #f0f4ff; }
+
+.header-spacer { margin-left: auto; }
+.last-updated {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  white-space: nowrap;
+}
+.view-link {
+  font-size: 11px;
+  color: #4fc3f7;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.view-link:hover { text-decoration: underline; }
 .header-actions { display: flex; gap: 8px; margin-left: 16px; }
 .btn {
   padding: 7px 16px;
@@ -79,18 +140,21 @@ body {
   font-family: inherit;
   transition: all 0.2s;
 }
+.btn:disabled { opacity: 0.4; cursor: default; }
 .btn-primary { background: #1b6b2f; color: #fff; }
-.btn-primary:hover { background: #228b3b; }
+.btn-primary:hover:not(:disabled) { background: #228b3b; }
 .btn-ghost {
   background: rgba(255,255,255,0.1);
   color: #fff;
   border: 1px solid rgba(255,255,255,0.25);
 }
-.btn-ghost:hover { background: rgba(255,255,255,0.2); }
+.btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,0.2); }
 .btn-pdf { background: #1565c0; color: #fff; border: none; }
 .btn-pdf:hover { background: #1976d2; }
 .btn-present { background: #6a1b9a; color: #fff; border: none; }
 .btn-present:hover { background: #7b1fa2; }
+.btn-insert { background: #0d47a1; color: #fff; border: none; }
+.btn-insert:hover { background: #1565c0; }
 
 /* ===== メインレイアウト ===== */
 .main {
@@ -280,18 +344,6 @@ body {
 /* ===== アップデート関連 ===== */
 .btn-update { background: #e67e22; color: #fff; }
 .btn-update:hover { background: #f39c12; }
-.last-updated {
-  font-size: 11px;
-  color: rgba(255,255,255,0.4);
-  white-space: nowrap;
-}
-.view-link {
-  font-size: 11px;
-  color: #4fc3f7;
-  text-decoration: none;
-  white-space: nowrap;
-}
-.view-link:hover { text-decoration: underline; }
 .toast {
   position: fixed;
   top: 20px;
@@ -396,7 +448,7 @@ body {
 }
 .btn-delete-slide:hover { background: #ffcdd2; }
 
-/* ===== テキスト編集ツールバー ===== */
+/* ===== テキスト編集ツールバー（右パネル内） ===== */
 .edit-toolbar {
   display: flex;
   gap: 4px;
@@ -422,6 +474,101 @@ body {
 .tb-clear:hover { background: #f5f5f5; }
 .tb-br { color: #1565c0; border-color: #90caf9; }
 .tb-br:hover { background: #e3f2fd; }
+
+/* ===== 右クリックコンテキストメニュー ===== */
+.ctx-menu {
+  position: fixed;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  padding: 4px 0;
+  z-index: 99999;
+  min-width: 160px;
+  display: none;
+}
+.ctx-menu.open { display: block; }
+.ctx-item {
+  padding: 7px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #333;
+}
+.ctx-item:hover { background: #f0f4ff; }
+.ctx-item.disabled { color: #bbb; pointer-events: none; }
+.ctx-divider { height: 1px; background: #eee; margin: 3px 0; }
+
+/* ===== フォーマットツールバー（ダブルクリック時） ===== */
+#format-toolbar {
+  position: fixed;
+  background: #1e1b4b;
+  border-radius: 6px;
+  padding: 4px;
+  display: none;
+  gap: 2px;
+  z-index: 99998;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+#format-toolbar.open { display: flex; }
+#format-toolbar button {
+  background: transparent;
+  border: none;
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#format-toolbar button:hover { background: rgba(255,255,255,0.15); }
+.fmt-divider { width: 1px; background: rgba(255,255,255,0.2); margin: 0 2px; }
+
+/* ===== 選択要素プロパティ（右パネル） ===== */
+.sel-props-section {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #eef2ff;
+  border-radius: 8px;
+  border: 1px solid #c7d2fe;
+}
+.sel-props-section .edit-label-text { margin-bottom: 8px; display: block; color: #4338ca; }
+.sel-prop-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.sel-prop-row label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #666;
+  min-width: 60px;
+}
+.sel-prop-row input[type="color"] {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+  background: none;
+}
+.sel-prop-row input[type="range"] {
+  flex: 1;
+}
+.sel-prop-row .range-val {
+  font-size: 10px;
+  color: #888;
+  min-width: 30px;
+  text-align: right;
+}
 </style>
 </head>
 <body>
@@ -447,6 +594,30 @@ body {
   <div class="header">
     <div class="header-title"><span class="accent">▶</span> スライドエディター</div>
     <div class="slide-counter" id="slide-counter">— / —</div>
+
+    <!-- ズームコントロール -->
+    <div class="zoom-controls">
+      <button class="btn btn-ghost" id="zoom-out-btn" title="縮小">−</button>
+      <span class="zoom-level" id="zoom-level">100%</span>
+      <button class="btn btn-ghost" id="zoom-in-btn" title="拡大">+</button>
+    </div>
+
+    <!-- 元に戻す・やり直し -->
+    <button class="btn btn-ghost" id="undo-btn" disabled title="元に戻す (Ctrl+Z)">↩</button>
+    <button class="btn btn-ghost" id="redo-btn" disabled title="やり直し (Ctrl+Y)">↪</button>
+
+    <!-- 挿入メニュー -->
+    <div class="insert-menu-wrap" id="insert-menu-wrap">
+      <button class="btn btn-insert" id="insert-btn">挿入 ▾</button>
+      <div class="insert-dropdown" id="insert-dropdown">
+        <div class="insert-item" data-type="text">📝 テキスト</div>
+        <div class="insert-item" data-type="image">🖼️ 画像</div>
+        <div class="insert-item" data-type="button">🔘 ボタン</div>
+        <div class="insert-item" data-type="hr">── 区切り線</div>
+      </div>
+    </div>
+
+    <span class="header-spacer"></span>
     <span class="last-updated" id="last-updated"></span>
     <a class="view-link" id="view-link" href="view.html" target="_blank" style="display:none">スライドショーを開く →</a>
     <div class="header-actions">
@@ -470,14 +641,53 @@ body {
   </div>
 </div>
 
+<!-- ===== フォーマットツールバー（ダブルクリック時に表示） ===== -->
+<div id="format-toolbar">
+  <button onclick="execFmt('bold')" title="太字"><b>B</b></button>
+  <button onclick="execFmt('italic')" title="斜体"><i>I</i></button>
+  <button onclick="execFmt('underline')" title="下線"><u>U</u></button>
+  <span class="fmt-divider"></span>
+  <button onclick="execAlign('left')" title="左揃え">⫷</button>
+  <button onclick="execAlign('center')" title="中央揃え">☰</button>
+  <button onclick="execAlign('right')" title="右揃え">⫸</button>
+</div>
+
+<!-- ===== 右クリックコンテキストメニュー ===== -->
+<div class="ctx-menu" id="ctx-menu">
+  <div class="ctx-item" data-action="copy">📋 コピー</div>
+  <div class="ctx-item" data-action="duplicate">📄 複製</div>
+  <div class="ctx-item" data-action="delete">🗑️ 削除</div>
+  <div class="ctx-divider"></div>
+  <div class="ctx-item" data-action="front">⬆ 前面へ</div>
+  <div class="ctx-item" data-action="back">⬇ 背面へ</div>
+  <div class="ctx-divider"></div>
+  <div class="ctx-item" data-action="lock">🔒 ロック</div>
+</div>
+
 <div class="toast" id="toast"></div>
 <input type="file" id="img-file-input" accept="image/*" style="display:none">
+<input type="file" id="insert-img-file-input" accept="image/*" style="display:none">
 
 <script>
 /* ===== ステート管理 ===== */
 let currentSlide = 0;
 let totalSlides = 0;
 let iframeDoc = null;
+
+/* ===== ズーム関連ステート ===== */
+let zoomLevel = 100;
+const ZOOM_MIN = 50;
+const ZOOM_MAX = 200;
+const ZOOM_STEP = 10;
+
+/* ===== Undo/Redo ステート ===== */
+const undoStack = [];
+const redoStack = [];
+const MAX_UNDO = 30;
+
+/* ===== 選択要素ステート ===== */
+let selectedElement = null;
+let isTextEditing = false;
 
 /* ===== 編集対象テキスト要素の定義 ===== */
 const EDITABLE = [
@@ -537,6 +747,10 @@ function loadFile(file) {
   reader.readAsText(file);
 }
 
+/* ===== インライン編集・選択対象セレクタ ===== */
+const INLINE_SELS = '.eyebrow,.main-title,.sub-title,.section-title,.chapter-num,.key-msg,.key-sub,.list-heading,.list-item,.list-footer,.profile-name,.profile-title,.profile-bio,.ba-label,.ba-text,.ba-arrow,.step-text,.step-footer,.col-icon,.col-title,.col-desc,.work-title,.work-text,.work-note,.cta-title,.cta-sub,.slide-num';
+const DRAG_THRESHOLD = 5;
+
 /* ===== エディター初期化 ===== */
 function initEditor(html) {
   uploadScreen.style.display = 'none';
@@ -548,13 +762,12 @@ function initEditor(html) {
   iframe.style.width  = iframeW + 'px';
   iframe.style.height = iframeH + 'px';
 
-  /* エディター用のCSS上書きを注入（ナビ非表示・スケール無効化・インライン編集） */
-  const mod = html.replace('</head>',
-    '<style id="__editor__">' +
+  /* エディター用のCSS上書きを注入（ナビ非表示・スケール無効化・インライン編集・選択オーバーレイ） */
+  const editorCSS =
     '#nav-bar,#fullscreen-btn,#progress-bar{display:none!important}' +
     '.slide{transform:none!important}' +
     '.content>*,.list-area>*,.ba-wrap>*,.step-list>*,.cols>*,.slide-num{transition:outline 0.12s}' +
-    '.content>*:hover,.list-area>*:hover,.ba-wrap>*:hover,.step-list>*:hover,.cols>*:hover,.slide-num:hover{outline:1px dashed rgba(27,107,47,0.4);cursor:text}' +
+    '.content>*:hover,.list-area>*:hover,.ba-wrap>*:hover,.step-list>*:hover,.cols>*:hover,.slide-num:hover{outline:1px dashed rgba(27,107,47,0.4);cursor:pointer}' +
     '[contenteditable=true]{outline:2px solid #1b6b2f!important;background:rgba(27,107,47,0.04);cursor:text}' +
     '.inserted-img{position:absolute;z-index:15;cursor:move;outline:1px solid transparent;transition:outline 0.12s}' +
     '.inserted-img:hover{outline:1px dashed #1b6b2f}' +
@@ -563,7 +776,28 @@ function initEditor(html) {
     '.inserted-img .img-resize{position:absolute;right:-4px;bottom:-4px;width:10px;height:10px;background:#1b6b2f;border:1px solid #fff;cursor:nwse-resize;border-radius:2px;z-index:16}' +
     '.inserted-img .img-delete{position:absolute;top:-8px;right:-8px;width:16px;height:16px;background:#cc2222;color:#fff;border:1px solid #fff;border-radius:50%;font-size:10px;line-height:14px;text-align:center;cursor:pointer;z-index:16;display:none}' +
     '.inserted-img.selected .img-delete{display:block}' +
-    '</style></head>'
+    /* 選択オーバーレイ用スタイル */
+    '#__sel-overlay__{position:absolute;pointer-events:none;z-index:9000;border:2px solid #2563eb;display:none}' +
+    '#__sel-overlay__.active{display:block}' +
+    '.sel-handle{position:absolute;width:8px;height:8px;background:#2563eb;border:1px solid #fff;border-radius:1px;pointer-events:auto;z-index:9001;cursor:pointer}' +
+    '.sel-nw{top:-4px;left:-4px;cursor:nwse-resize}' +
+    '.sel-n{top:-4px;left:50%;margin-left:-4px;cursor:ns-resize}' +
+    '.sel-ne{top:-4px;right:-4px;cursor:nesw-resize}' +
+    '.sel-e{top:50%;right:-4px;margin-top:-4px;cursor:ew-resize}' +
+    '.sel-se{bottom:-4px;right:-4px;cursor:nwse-resize}' +
+    '.sel-s{bottom:-4px;left:50%;margin-left:-4px;cursor:ns-resize}' +
+    '.sel-sw{bottom:-4px;left:-4px;cursor:nesw-resize}' +
+    '.sel-w{top:50%;left:-4px;margin-top:-4px;cursor:ew-resize}' +
+    '.__drag-shadow__{box-shadow:0 4px 20px rgba(0,0,0,0.3)!important}' +
+    '.__locked__{pointer-events:auto;position:relative}' +
+    '.__locked__::after{content:"\\1F512";position:absolute;top:2px;right:2px;font-size:10px;z-index:100;pointer-events:none}' +
+    '.__sel-active__{outline:2px solid #2563eb!important;outline-offset:1px}' +
+    '.inserted-text-block{position:absolute;z-index:15;min-width:40px;min-height:20px;padding:4px 8px;font-size:14px;color:#fff;cursor:move}' +
+    '.inserted-cta-btn{position:absolute;z-index:15;padding:10px 24px;border-radius:6px;font-size:13px;font-weight:700;color:#fff;background:#1b6b2f;text-align:center;cursor:move;white-space:nowrap}' +
+    '.inserted-hr{position:absolute;z-index:15;width:80%;left:10%;height:2px;background:rgba(255,255,255,0.3);cursor:move}';
+
+  const mod = html.replace('</head>',
+    '<style id="__editor__">' + editorCSS + '</style></head>'
   );
 
   iframe.srcdoc = mod;
@@ -574,11 +808,73 @@ function initEditor(html) {
     /* スライドショー内部のナビゲーションを無効化 */
     iframe.contentWindow.goTo = function() {};
 
+    /* 選択オーバーレイをiframe内に作成 */
+    createSelectionOverlay();
+
     buildSidebar();
     scalePreview();
     setupInlineEditing();
     goToSlide(0);
+
+    /* 初期Undoスナップショットを保存 */
+    saveUndoState();
   };
+}
+
+/* ===== 選択オーバーレイ作成（iframe内に注入） ===== */
+function createSelectionOverlay() {
+  if (!iframeDoc) return;
+  let overlay = iframeDoc.getElementById('__sel-overlay__');
+  if (!overlay) {
+    overlay = iframeDoc.createElement('div');
+    overlay.id = '__sel-overlay__';
+    overlay.innerHTML =
+      '<div class="sel-handle sel-nw" data-dir="nw"></div>' +
+      '<div class="sel-handle sel-n" data-dir="n"></div>' +
+      '<div class="sel-handle sel-ne" data-dir="ne"></div>' +
+      '<div class="sel-handle sel-e" data-dir="e"></div>' +
+      '<div class="sel-handle sel-se" data-dir="se"></div>' +
+      '<div class="sel-handle sel-s" data-dir="s"></div>' +
+      '<div class="sel-handle sel-sw" data-dir="sw"></div>' +
+      '<div class="sel-handle sel-w" data-dir="w"></div>';
+    iframeDoc.body.appendChild(overlay);
+  }
+  return overlay;
+}
+
+/* ===== 選択オーバーレイの位置更新 ===== */
+function updateSelectionOverlay() {
+  if (!iframeDoc) return;
+  const overlay = iframeDoc.getElementById('__sel-overlay__');
+  if (!overlay) return;
+
+  if (!selectedElement || isTextEditing) {
+    overlay.classList.remove('active');
+    return;
+  }
+
+  /* 選択中の要素の位置・サイズを取得 */
+  const el = selectedElement;
+  const slidePage = iframeDoc.querySelectorAll('.slide-page')[currentSlide];
+  if (!slidePage) return;
+  const slideEl = slidePage.querySelector('.slide');
+  if (!slideEl) return;
+
+  /* slideEl内での相対位置を計算 */
+  const slideRect = slideEl.getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
+
+  overlay.style.left   = (elRect.left - slideRect.left) + 'px';
+  overlay.style.top    = (elRect.top - slideRect.top) + 'px';
+  overlay.style.width  = elRect.width + 'px';
+  overlay.style.height = elRect.height + 'px';
+
+  /* オーバーレイをslideEl内に配置 */
+  if (overlay.parentElement !== slideEl) {
+    slideEl.appendChild(overlay);
+  }
+
+  overlay.classList.add('active');
 }
 
 /* ===== サイドバー構築（D&D並べ替え対応） ===== */
@@ -650,6 +946,7 @@ function buildSidebar() {
       let newIdx = 0;
       newPages.forEach((pg, idx) => { if (pg === srcPage) newIdx = idx; });
       goToSlide(newIdx);
+      saveUndoState();
       showToast('スライドを移動しました');
     });
 
@@ -674,10 +971,12 @@ function scalePreview() {
 
   const iframeW = 390;
   const iframeH = Math.round(390 * 9 / 16);
-  const scale   = Math.min(
+  const baseScale = Math.min(
     (area.clientWidth  - 32) / iframeW,
     (area.clientHeight - 32) / iframeH
   );
+  /* ズームレベルを適用 */
+  const scale = baseScale * (zoomLevel / 100);
   container.style.width           = iframeW + 'px';
   container.style.height          = iframeH + 'px';
   container.style.transform       = 'scale(' + scale + ')';
@@ -687,10 +986,32 @@ function scalePreview() {
 }
 window.addEventListener('resize', scalePreview);
 
+/* ===== ズームコントロール ===== */
+document.getElementById('zoom-in-btn').addEventListener('click', () => setZoom(zoomLevel + ZOOM_STEP));
+document.getElementById('zoom-out-btn').addEventListener('click', () => setZoom(zoomLevel - ZOOM_STEP));
+
+function setZoom(level) {
+  zoomLevel = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, level));
+  document.getElementById('zoom-level').textContent = zoomLevel + '%';
+  scalePreview();
+}
+
+/* Ctrl+マウスホイールでズーム */
+document.getElementById('preview-area').addEventListener('wheel', (e) => {
+  if (e.ctrlKey || e.metaKey) {
+    e.preventDefault();
+    setZoom(zoomLevel + (e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP));
+  }
+}, { passive: false });
+
 /* ===== スライドナビゲーション ===== */
 function goToSlide(idx) {
   if (idx < 0 || idx >= totalSlides) return;
   currentSlide = idx;
+
+  /* 選択を解除 */
+  deselectElement();
+  hideFormatToolbar();
 
   /* iframe内のスライド表示を切り替え */
   iframeDoc.querySelectorAll('.slide-page').forEach((p, i) => {
@@ -737,6 +1058,21 @@ function buildEditPanel(idx) {
     '<button class="img-shape-btn" onclick="addImageToSlide(\'square\')"><span class="shape-icon">■</span>正方形</button>' +
     '<button class="img-shape-btn" onclick="addImageToSlide(\'circle\')"><span class="shape-icon">●</span>丸型</button>' +
     '</div></div>';
+
+  /* 選択要素プロパティ（背景色・角丸） */
+  html += '<div class="sel-props-section" id="sel-props-section" style="display:none;">' +
+    '<span class="edit-label-text">選択要素のプロパティ</span>' +
+    '<div class="sel-prop-row">' +
+    '<label>背景色</label>' +
+    '<input type="color" id="sel-bg-color" value="#000000">' +
+    '<button class="tb-btn tb-clear" id="sel-bg-clear" style="font-size:9px;padding:2px 6px;">リセット</button>' +
+    '</div>' +
+    '<div class="sel-prop-row">' +
+    '<label>角丸</label>' +
+    '<input type="range" id="sel-border-radius" min="0" max="50" value="0">' +
+    '<span class="range-val" id="sel-br-val">0px</span>' +
+    '</div>' +
+    '</div>';
 
   const elementMap = [];
   let eidx = 0;
@@ -796,6 +1132,7 @@ function buildEditPanel(idx) {
     ta.addEventListener('blur', () => {
       el.style.outline = '';
       el.style.outlineOffset = '';
+      saveUndoState();
     });
   });
 
@@ -805,6 +1142,7 @@ function buildEditPanel(idx) {
     inp.addEventListener('input', () => {
       el.style.fontSize = inp.value + 'px';
     });
+    inp.addEventListener('change', () => { saveUndoState(); });
   });
 
   /* ツールバーボタンのイベント */
@@ -844,11 +1182,84 @@ function buildEditPanel(idx) {
     });
   });
 
+  /* 選択要素プロパティのイベント接続 */
+  setupSelPropsListeners();
+
   /* スライドコピー・削除ボタン */
   const copyBtn = document.getElementById('copy-slide-btn');
   if (copyBtn) copyBtn.addEventListener('click', copyCurrentSlide);
   const delBtn = document.getElementById('delete-slide-btn');
   if (delBtn) delBtn.addEventListener('click', deleteCurrentSlide);
+
+  /* 選択要素プロパティを更新 */
+  updateSelPropsPanel();
+}
+
+/* ===== 選択要素プロパティパネルの表示/非表示・値更新 ===== */
+function updateSelPropsPanel() {
+  const section = document.getElementById('sel-props-section');
+  if (!section) return;
+
+  if (!selectedElement) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = '';
+  const bgInput = document.getElementById('sel-bg-color');
+  const brInput = document.getElementById('sel-border-radius');
+  const brVal   = document.getElementById('sel-br-val');
+
+  /* 現在の背景色を取得 */
+  const computed = document.getElementById('preview-iframe').contentWindow.getComputedStyle(selectedElement);
+  const bgColor = selectedElement.style.backgroundColor || '';
+  if (bgColor) {
+    /* rgb → hex 変換 */
+    bgInput.value = rgbToHex(bgColor);
+  } else {
+    bgInput.value = '#000000';
+  }
+
+  /* 現在の角丸を取得 */
+  const br = parseInt(selectedElement.style.borderRadius) || 0;
+  brInput.value = br;
+  brVal.textContent = br + 'px';
+}
+
+/* 選択要素プロパティのイベントリスナー */
+function setupSelPropsListeners() {
+  const bgInput = document.getElementById('sel-bg-color');
+  const bgClear = document.getElementById('sel-bg-clear');
+  const brInput = document.getElementById('sel-border-radius');
+  const brVal   = document.getElementById('sel-br-val');
+  if (!bgInput) return;
+
+  bgInput.addEventListener('input', () => {
+    if (!selectedElement) return;
+    selectedElement.style.backgroundColor = bgInput.value;
+  });
+  bgInput.addEventListener('change', () => { saveUndoState(); });
+
+  bgClear.addEventListener('click', () => {
+    if (!selectedElement) return;
+    selectedElement.style.backgroundColor = '';
+    saveUndoState();
+  });
+
+  brInput.addEventListener('input', () => {
+    if (!selectedElement) return;
+    selectedElement.style.borderRadius = brInput.value + 'px';
+    brVal.textContent = brInput.value + 'px';
+  });
+  brInput.addEventListener('change', () => { saveUndoState(); });
+}
+
+/* RGB文字列→16進変換ユーティリティ */
+function rgbToHex(rgb) {
+  if (rgb.startsWith('#')) return rgb;
+  const m = rgb.match(/(\d+)/g);
+  if (!m || m.length < 3) return '#000000';
+  return '#' + m.slice(0, 3).map(c => parseInt(c).toString(16).padStart(2, '0')).join('');
 }
 
 /* HTML特殊文字エスケープ */
@@ -871,6 +1282,7 @@ function copyCurrentSlide() {
   reindexSlides();
   buildSidebar();
   goToSlide(currentSlide + 1);
+  saveUndoState();
   showToast('スライド ' + (currentSlide + 1) + ' をコピーしました');
 }
 
@@ -885,6 +1297,7 @@ function deleteCurrentSlide() {
   reindexSlides();
   buildSidebar();
   goToSlide(Math.min(currentSlide, totalSlides - 1));
+  saveUndoState();
   showToast('スライドを削除しました');
 }
 
@@ -899,36 +1312,52 @@ function reindexSlides() {
   });
 }
 
-/* ===== ダウンロード処理 ===== */
-document.getElementById('download-btn').addEventListener('click', () => {
-  if (!iframeDoc) return;
-  const output = getCleanHTML();
-  const blob = new Blob([output], { type: 'text/html' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = 'slideshow_edited.html';
-  a.click();
-  URL.revokeObjectURL(url);
-});
-
-/* ===== 統合インタラクション（クリック=編集 / ドラッグ=移動） ===== */
-const INLINE_SELS = '.eyebrow,.main-title,.sub-title,.section-title,.chapter-num,.key-msg,.key-sub,.list-heading,.list-item,.list-footer,.profile-name,.profile-title,.profile-bio,.ba-label,.ba-text,.ba-arrow,.step-text,.step-footer,.col-icon,.col-title,.col-desc,.work-title,.work-text,.work-note,.cta-title,.cta-sub,.slide-num';
-const DRAG_THRESHOLD = 5;
-
+/* ===== 統合インタラクション（クリック=選択 / ダブルクリック=編集 / ドラッグ=移動） ===== */
 function setupInlineEditing() {
   if (!iframeDoc) return;
 
   let downTarget = null, downX = 0, downY = 0, origTX = 0, origTY = 0;
   let dragging = false;
+  /* 画像リサイズ用ステート */
   let resizing = false, resizeTarget = null, resizeStartW = 0, resizeStartH = 0, resizeStartX = 0, resizeStartY = 0;
-  let selectedImg = null;
+  /* 選択オーバーレイリサイズ用ステート */
+  let handleResizing = false, handleDir = '', handleStartX = 0, handleStartY = 0;
+  let handleOrigW = 0, handleOrigH = 0, handleOrigL = 0, handleOrigT = 0;
+  let handleIsImg = false;
 
   /* === マウスダウン === */
   iframeDoc.addEventListener('mousedown', (e) => {
     e.stopPropagation();
 
-    /* リサイズハンドル */
+    /* リサイズハンドル（選択オーバーレイの8点ハンドル） */
+    if (e.target.classList.contains('sel-handle')) {
+      if (!selectedElement || selectedElement.dataset.locked === 'true') return;
+      handleResizing = true;
+      handleDir = e.target.dataset.dir;
+      handleStartX = e.clientX;
+      handleStartY = e.clientY;
+      handleIsImg = selectedElement.tagName === 'IMG' || selectedElement.classList.contains('inserted-img');
+      const rect = selectedElement.getBoundingClientRect();
+      handleOrigW = rect.width;
+      handleOrigH = rect.height;
+      /* left/top の現在値を取得 */
+      handleOrigL = parseInt(selectedElement.style.left) || 0;
+      handleOrigT = parseInt(selectedElement.style.top) || 0;
+      /* transform translate ベースの場合 */
+      if (!selectedElement.classList.contains('inserted-img') &&
+          !selectedElement.classList.contains('inserted-text-block') &&
+          !selectedElement.classList.contains('inserted-cta-btn') &&
+          !selectedElement.classList.contains('inserted-hr')) {
+        const t = selectedElement.style.transform || '';
+        const m = t.match(/translate\(\s*([^,]+)px\s*,\s*([^)]+)px\s*\)/);
+        handleOrigL = m ? parseFloat(m[1]) : 0;
+        handleOrigT = m ? parseFloat(m[2]) : 0;
+      }
+      e.preventDefault();
+      return;
+    }
+
+    /* 画像リサイズハンドル（既存互換） */
     if (e.target.classList.contains('img-resize')) {
       resizing = true;
       resizeTarget = e.target.parentElement;
@@ -940,22 +1369,36 @@ function setupInlineEditing() {
       return;
     }
 
-    /* 削除ボタン */
+    /* 削除ボタン（挿入画像のXボタン） */
     if (e.target.classList.contains('img-delete')) {
       e.target.parentElement.remove();
-      selectedImg = null;
+      deselectElement();
       buildEditPanel(currentSlide);
+      saveUndoState();
+      return;
+    }
+
+    /* ロックされた要素はドラッグ不可 */
+    const clickedEl = e.target.closest('[data-locked="true"]');
+    if (clickedEl && clickedEl.dataset.locked === 'true') {
+      /* ロック要素は選択だけ許可 */
+      selectElement(clickedEl);
+      e.preventDefault();
       return;
     }
 
     /* ドラッグ対象を特定 */
     const imgTarget = e.target.closest('.inserted-img');
+    const textBlockTarget = e.target.closest('.inserted-text-block');
+    const ctaBtnTarget = e.target.closest('.inserted-cta-btn');
+    const hrTarget = e.target.closest('.inserted-hr');
     const textTarget = e.target.closest(INLINE_SELS);
-    const target = imgTarget || textTarget;
+    const target = imgTarget || textBlockTarget || ctaBtnTarget || hrTarget || textTarget;
+
     if (!target) {
       /* 空白クリック → 編集終了・選択解除 */
       finishEditing();
-      deselectImg();
+      deselectElement();
       return;
     }
 
@@ -964,10 +1407,10 @@ function setupInlineEditing() {
     downY = e.clientY;
     dragging = false;
 
-    /* 移動元のtranslate値を取得 */
-    if (imgTarget) {
-      origTX = parseInt(imgTarget.style.left) || 0;
-      origTY = parseInt(imgTarget.style.top) || 0;
+    /* 移動元の位置を取得 */
+    if (imgTarget || textBlockTarget || ctaBtnTarget || hrTarget) {
+      origTX = parseInt(target.style.left) || 0;
+      origTY = parseInt(target.style.top) || 0;
     } else {
       const t = target.style.transform || '';
       const m = t.match(/translate\(\s*([^,]+)px\s*,\s*([^)]+)px\s*\)/);
@@ -980,7 +1423,16 @@ function setupInlineEditing() {
 
   /* === マウスムーブ === */
   iframeDoc.addEventListener('mousemove', (e) => {
-    /* リサイズ中 */
+    /* 選択オーバーレイハンドルのリサイズ中 */
+    if (handleResizing && selectedElement) {
+      const dx = e.clientX - handleStartX;
+      const dy = e.clientY - handleStartY;
+      applyHandleResize(dx, dy);
+      updateSelectionOverlay();
+      return;
+    }
+
+    /* 画像リサイズ中（既存互換） */
     if (resizing && resizeTarget) {
       const dx = e.clientX - resizeStartX;
       const dy = e.clientY - resizeStartY;
@@ -993,89 +1445,660 @@ function setupInlineEditing() {
         resizeTarget.style.width  = Math.max(30, resizeStartW + dx) + 'px';
         resizeTarget.style.height = Math.max(20, resizeStartH + dy) + 'px';
       }
+      updateSelectionOverlay();
       return;
     }
 
     if (!downTarget) return;
+    if (downTarget.dataset && downTarget.dataset.locked === 'true') return;
     const dx = e.clientX - downX;
     const dy = e.clientY - downY;
 
     if (!dragging && (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)) {
       dragging = true;
       finishEditing();
+      downTarget.classList.add('__drag-shadow__');
     }
 
     if (dragging) {
-      if (downTarget.classList.contains('inserted-img')) {
+      if (downTarget.classList.contains('inserted-img') ||
+          downTarget.classList.contains('inserted-text-block') ||
+          downTarget.classList.contains('inserted-cta-btn') ||
+          downTarget.classList.contains('inserted-hr')) {
         downTarget.style.left = (origTX + dx) + 'px';
         downTarget.style.top  = (origTY + dy) + 'px';
       } else {
         downTarget.style.transform = 'translate(' + (origTX + dx) + 'px,' + (origTY + dy) + 'px)';
       }
+      updateSelectionOverlay();
     }
   });
 
   /* === マウスアップ === */
   iframeDoc.addEventListener('mouseup', (e) => {
-    if (resizing) { resizing = false; resizeTarget = null; return; }
+    /* ハンドルリサイズ終了 */
+    if (handleResizing) {
+      handleResizing = false;
+      saveUndoState();
+      return;
+    }
+    /* 画像リサイズ終了 */
+    if (resizing) {
+      resizing = false;
+      resizeTarget = null;
+      saveUndoState();
+      return;
+    }
     if (!downTarget) return;
 
-    if (!dragging) {
-      /* クリック → テキスト編集 or 画像選択 */
-      if (downTarget.classList.contains('inserted-img')) {
-        deselectImg();
-        selectedImg = downTarget;
-        downTarget.classList.add('selected');
-      } else if (downTarget.matches(INLINE_SELS)) {
-        deselectImg();
-        finishEditing();
-        downTarget.contentEditable = true;
-        downTarget.focus();
-      }
+    if (dragging) {
+      downTarget.classList.remove('__drag-shadow__');
+      saveUndoState();
     }
+
+    if (!dragging) {
+      /* シングルクリック → 選択 */
+      const target = downTarget;
+      finishEditing();
+      selectElement(target);
+    }
+
     downTarget = null;
     dragging = false;
   });
 
-  /* === キーボード === */
+  /* === ダブルクリック → テキスト編集モード === */
+  iframeDoc.addEventListener('dblclick', (e) => {
+    e.stopPropagation();
+    const textTarget = e.target.closest(INLINE_SELS);
+    const insertedText = e.target.closest('.inserted-text-block');
+    const insertedCta = e.target.closest('.inserted-cta-btn');
+    const target = textTarget || insertedText || insertedCta;
+
+    if (!target) return;
+    if (target.dataset && target.dataset.locked === 'true') return;
+
+    /* テキスト編集モード開始 */
+    enterTextEditMode(target);
+  }, true);
+
+  /* === キーボードイベント === */
   iframeDoc.addEventListener('keydown', (e) => {
     e.stopPropagation();
-    const editing = iframeDoc.querySelector('[contenteditable="true"]');
+    const editing = isTextEditing;
 
-    /* Delete / Backspace で選択中の画像を削除 */
-    if (!editing && selectedImg && (e.key === 'Delete' || e.key === 'Backspace')) {
+    /* Delete / Backspace で選択中の要素を削除（テキスト編集中は除く） */
+    if (!editing && selectedElement && (e.key === 'Delete' || e.key === 'Backspace')) {
+      if (selectedElement.dataset && selectedElement.dataset.locked === 'true') return;
       e.preventDefault();
-      selectedImg.remove();
-      selectedImg = null;
+      /* 子要素を持つ場合は確認ダイアログ */
+      if (selectedElement.children.length > 0 && !selectedElement.classList.contains('inserted-img')) {
+        if (!confirm('この要素を削除しますか？（子要素も含まれます）')) return;
+      }
+      selectedElement.remove();
+      deselectElement();
       buildEditPanel(currentSlide);
+      saveUndoState();
       return;
+    }
+
+    /* 矢印キーでナッジ（テキスト編集中は除く） */
+    if (!editing && selectedElement) {
+      if (selectedElement.dataset && selectedElement.dataset.locked === 'true') return;
+      const step = e.shiftKey ? 10 : 1;
+      let handled = false;
+
+      if (selectedElement.classList.contains('inserted-img') ||
+          selectedElement.classList.contains('inserted-text-block') ||
+          selectedElement.classList.contains('inserted-cta-btn') ||
+          selectedElement.classList.contains('inserted-hr')) {
+        /* left/top ベースの要素 */
+        const curL = parseInt(selectedElement.style.left) || 0;
+        const curT = parseInt(selectedElement.style.top) || 0;
+        if (e.key === 'ArrowLeft')  { selectedElement.style.left = (curL - step) + 'px'; handled = true; }
+        if (e.key === 'ArrowRight') { selectedElement.style.left = (curL + step) + 'px'; handled = true; }
+        if (e.key === 'ArrowUp')    { selectedElement.style.top  = (curT - step) + 'px'; handled = true; }
+        if (e.key === 'ArrowDown')  { selectedElement.style.top  = (curT + step) + 'px'; handled = true; }
+      } else {
+        /* transform:translate ベースの要素 */
+        const t = selectedElement.style.transform || '';
+        const m = t.match(/translate\(\s*([^,]+)px\s*,\s*([^)]+)px\s*\)/);
+        let tx = m ? parseFloat(m[1]) : 0;
+        let ty = m ? parseFloat(m[2]) : 0;
+        if (e.key === 'ArrowLeft')  { tx -= step; handled = true; }
+        if (e.key === 'ArrowRight') { tx += step; handled = true; }
+        if (e.key === 'ArrowUp')    { ty -= step; handled = true; }
+        if (e.key === 'ArrowDown')  { ty += step; handled = true; }
+        if (handled) selectedElement.style.transform = 'translate(' + tx + 'px,' + ty + 'px)';
+      }
+
+      if (handled) {
+        e.preventDefault();
+        updateSelectionOverlay();
+        return;
+      }
     }
 
     if (e.key === 'Escape') {
       if (editing) { finishEditing(); return; }
-      if (selectedImg) { deselectImg(); return; }
+      if (selectedElement) { deselectElement(); return; }
     }
 
-    if (!editing && !selectedImg) {
+    /* スライドナビゲーション（何も選択していない時のみ） */
+    if (!editing && !selectedElement) {
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); goToSlide(currentSlide + 1); }
       if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); goToSlide(currentSlide - 1); }
     }
   }, true);
 
+  /* === 右クリックイベント（コンテキストメニュー） === */
+  iframeDoc.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    /* クリック対象の要素を特定 */
+    const imgTarget = e.target.closest('.inserted-img');
+    const textBlockTarget = e.target.closest('.inserted-text-block');
+    const ctaBtnTarget = e.target.closest('.inserted-cta-btn');
+    const hrTarget = e.target.closest('.inserted-hr');
+    const textTarget = e.target.closest(INLINE_SELS);
+    const ctxTarget = imgTarget || textBlockTarget || ctaBtnTarget || hrTarget || textTarget;
+
+    if (ctxTarget) {
+      selectElement(ctxTarget);
+    }
+
+    /* iframeのスケールとオフセットを考慮した座標計算 */
+    const iframe = document.getElementById('preview-iframe');
+    const iframeRect = iframe.getBoundingClientRect();
+    const container = document.getElementById('preview-container');
+    const containerRect = container.getBoundingClientRect();
+    const scaleX = containerRect.width / parseInt(iframe.style.width);
+    const scaleY = containerRect.height / parseInt(iframe.style.height);
+
+    const menuX = iframeRect.left + e.clientX * scaleX;
+    const menuY = iframeRect.top + e.clientY * scaleY;
+
+    showContextMenu(menuX, menuY, ctxTarget);
+  }, true);
+
+  /* テキスト編集終了処理 */
   function finishEditing() {
-    const prev = iframeDoc.querySelector('[contenteditable="true"]');
-    if (prev) {
-      prev.contentEditable = false;
+    if (isTextEditing) {
+      const prev = iframeDoc.querySelector('[contenteditable="true"]');
+      if (prev) {
+        prev.contentEditable = false;
+      }
+      isTextEditing = false;
+      hideFormatToolbar();
       buildEditPanel(currentSlide);
+      saveUndoState();
     }
   }
-  function deselectImg() {
-    if (selectedImg) { selectedImg.classList.remove('selected'); selectedImg = null; }
-    iframeDoc.querySelectorAll('.inserted-img.selected').forEach(el => el.classList.remove('selected'));
+
+  /* リサイズハンドルの適用処理 */
+  function applyHandleResize(dx, dy) {
+    if (!selectedElement) return;
+    const el = selectedElement;
+    const dir = handleDir;
+    let newW = handleOrigW;
+    let newH = handleOrigH;
+
+    /* 画像の場合はアスペクト比を維持（コーナーハンドルのみ） */
+    const isCorner = ['nw', 'ne', 'se', 'sw'].includes(dir);
+    const maintainAspect = (el.tagName === 'IMG' || el.classList.contains('inserted-img')) && isCorner;
+    const aspect = handleOrigW / handleOrigH;
+
+    /* 方向に応じたリサイズ計算 */
+    if (dir.includes('e')) newW = handleOrigW + dx;
+    if (dir.includes('w')) newW = handleOrigW - dx;
+    if (dir.includes('s')) newH = handleOrigH + dy;
+    if (dir.includes('n')) newH = handleOrigH - dy;
+
+    if (maintainAspect) {
+      if (dir === 'se' || dir === 'ne') {
+        newH = newW / aspect;
+      } else {
+        newW = newH * aspect;
+      }
+    }
+
+    newW = Math.max(20, newW);
+    newH = Math.max(20, newH);
+
+    el.style.width = newW + 'px';
+    el.style.height = newH + 'px';
+
+    /* 左・上方向リサイズ時は位置も移動 */
+    if (el.classList.contains('inserted-img') ||
+        el.classList.contains('inserted-text-block') ||
+        el.classList.contains('inserted-cta-btn') ||
+        el.classList.contains('inserted-hr')) {
+      if (dir.includes('w')) el.style.left = (handleOrigL + dx) + 'px';
+      if (dir.includes('n')) el.style.top = (handleOrigT + dy) + 'px';
+    }
   }
 }
 
-/* ===== 画像挿入 ===== */
+/* ===== 要素選択 ===== */
+function selectElement(el) {
+  if (!el) return;
+  /* 前の選択を解除 */
+  if (selectedElement && selectedElement !== el) {
+    selectedElement.classList.remove('__sel-active__');
+    if (selectedElement.classList.contains('inserted-img')) {
+      selectedElement.classList.remove('selected');
+    }
+  }
+
+  selectedElement = el;
+  el.classList.add('__sel-active__');
+  if (el.classList.contains('inserted-img')) {
+    el.classList.add('selected');
+  }
+
+  updateSelectionOverlay();
+  updateSelPropsPanel();
+
+  /* iframeにフォーカスを当てる（キーイベント受信のため） */
+  document.getElementById('preview-iframe').contentWindow.focus();
+}
+
+/* ===== 要素選択解除 ===== */
+function deselectElement() {
+  if (selectedElement) {
+    selectedElement.classList.remove('__sel-active__');
+    if (selectedElement.classList.contains('inserted-img')) {
+      selectedElement.classList.remove('selected');
+    }
+    selectedElement = null;
+  }
+  /* 全体のselectedクラスもクリーン */
+  if (iframeDoc) {
+    iframeDoc.querySelectorAll('.inserted-img.selected').forEach(el => el.classList.remove('selected'));
+    iframeDoc.querySelectorAll('.__sel-active__').forEach(el => el.classList.remove('__sel-active__'));
+  }
+  /* オーバーレイを非表示 */
+  const overlay = iframeDoc ? iframeDoc.getElementById('__sel-overlay__') : null;
+  if (overlay) overlay.classList.remove('active');
+
+  updateSelPropsPanel();
+  hideFormatToolbar();
+}
+
+/* ===== テキスト編集モード開始 ===== */
+function enterTextEditMode(target) {
+  if (!target) return;
+  isTextEditing = true;
+  target.contentEditable = true;
+  target.focus();
+
+  /* 選択オーバーレイを非表示にする（編集中は不要） */
+  const overlay = iframeDoc.getElementById('__sel-overlay__');
+  if (overlay) overlay.classList.remove('active');
+
+  /* フォーマットツールバーを表示 */
+  showFormatToolbar(target);
+}
+
+/* ===== フォーマットツールバー表示 ===== */
+function showFormatToolbar(target) {
+  const toolbar = document.getElementById('format-toolbar');
+  if (!toolbar || !target) return;
+
+  /* 対象要素のiframe内位置を親ドキュメント座標に変換 */
+  const iframe = document.getElementById('preview-iframe');
+  const iframeRect = iframe.getBoundingClientRect();
+  const container = document.getElementById('preview-container');
+  const containerRect = container.getBoundingClientRect();
+  const scaleX = containerRect.width / parseInt(iframe.style.width);
+  const scaleY = containerRect.height / parseInt(iframe.style.height);
+
+  const elRect = target.getBoundingClientRect();
+  const x = iframeRect.left + elRect.left * scaleX;
+  const y = iframeRect.top + elRect.top * scaleY;
+
+  toolbar.style.left = Math.max(0, x) + 'px';
+  toolbar.style.top = Math.max(0, y - 40) + 'px';
+  toolbar.classList.add('open');
+}
+
+function hideFormatToolbar() {
+  const toolbar = document.getElementById('format-toolbar');
+  if (toolbar) toolbar.classList.remove('open');
+}
+
+/* ===== フォーマットコマンド実行 ===== */
+function execFmt(cmd) {
+  if (!iframeDoc || !isTextEditing) return;
+  iframeDoc.execCommand(cmd, false, null);
+  document.getElementById('preview-iframe').contentWindow.focus();
+}
+/* グローバルスコープに公開（onclick属性用） */
+window.execFmt = execFmt;
+
+function execAlign(align) {
+  if (!iframeDoc || !isTextEditing) return;
+  const editing = iframeDoc.querySelector('[contenteditable="true"]');
+  if (editing) {
+    editing.style.textAlign = align;
+  }
+  document.getElementById('preview-iframe').contentWindow.focus();
+}
+window.execAlign = execAlign;
+
+/* ===== 右クリックコンテキストメニュー ===== */
+function showContextMenu(x, y, targetEl) {
+  const menu = document.getElementById('ctx-menu');
+
+  /* ロック/ロック解除のテキストを切替 */
+  const lockItem = menu.querySelector('[data-action="lock"]');
+  if (targetEl && targetEl.dataset.locked === 'true') {
+    lockItem.textContent = '🔓 ロック解除';
+  } else {
+    lockItem.textContent = '🔒 ロック';
+  }
+
+  /* 対象要素がない場合は一部のメニューをdisabled化 */
+  menu.querySelectorAll('.ctx-item').forEach(item => {
+    item.classList.toggle('disabled', !targetEl && item.dataset.action !== 'copy');
+  });
+
+  /* 画面端で溢れないよう調整 */
+  menu.style.left = Math.min(x, window.innerWidth - 180) + 'px';
+  menu.style.top  = Math.min(y, window.innerHeight - 250) + 'px';
+  menu.classList.add('open');
+  menu._targetEl = targetEl;
+}
+
+function hideContextMenu() {
+  const menu = document.getElementById('ctx-menu');
+  menu.classList.remove('open');
+  menu._targetEl = null;
+}
+
+/* コンテキストメニューアクション */
+document.getElementById('ctx-menu').addEventListener('click', (e) => {
+  const item = e.target.closest('.ctx-item');
+  if (!item || item.classList.contains('disabled')) return;
+  const action = item.dataset.action;
+  const menu = document.getElementById('ctx-menu');
+  const targetEl = menu._targetEl;
+
+  switch (action) {
+    case 'copy':
+      /* クリップボードにテキストをコピー */
+      if (targetEl) {
+        navigator.clipboard.writeText(targetEl.textContent || '').then(() => {
+          showToast('コピーしました');
+        });
+      }
+      break;
+    case 'duplicate':
+      if (targetEl) {
+        const clone = targetEl.cloneNode(true);
+        /* 少しずらして挿入 */
+        if (clone.style.left) {
+          clone.style.left = (parseInt(clone.style.left) + 10) + 'px';
+          clone.style.top  = (parseInt(clone.style.top) + 10) + 'px';
+        } else {
+          const t = clone.style.transform || '';
+          const m = t.match(/translate\(\s*([^,]+)px\s*,\s*([^)]+)px\s*\)/);
+          const tx = m ? parseFloat(m[1]) + 10 : 10;
+          const ty = m ? parseFloat(m[2]) + 10 : 10;
+          clone.style.transform = 'translate(' + tx + 'px,' + ty + 'px)';
+        }
+        targetEl.parentElement.appendChild(clone);
+        selectElement(clone);
+        saveUndoState();
+        showToast('要素を複製しました');
+      }
+      break;
+    case 'delete':
+      if (targetEl) {
+        if (targetEl.dataset.locked === 'true') {
+          showToast('ロックされた要素は削除できません');
+          break;
+        }
+        targetEl.remove();
+        deselectElement();
+        buildEditPanel(currentSlide);
+        saveUndoState();
+        showToast('要素を削除しました');
+      }
+      break;
+    case 'front':
+      if (targetEl) {
+        const parent = targetEl.parentElement;
+        parent.appendChild(targetEl);
+        saveUndoState();
+        showToast('前面に移動しました');
+      }
+      break;
+    case 'back':
+      if (targetEl) {
+        const parent = targetEl.parentElement;
+        parent.insertBefore(targetEl, parent.firstChild);
+        saveUndoState();
+        showToast('背面に移動しました');
+      }
+      break;
+    case 'lock':
+      if (targetEl) {
+        if (targetEl.dataset.locked === 'true') {
+          delete targetEl.dataset.locked;
+          targetEl.classList.remove('__locked__');
+          showToast('ロックを解除しました');
+        } else {
+          targetEl.dataset.locked = 'true';
+          targetEl.classList.add('__locked__');
+          showToast('要素をロックしました');
+        }
+        saveUndoState();
+      }
+      break;
+  }
+  hideContextMenu();
+});
+
+/* メニュー外クリックで閉じる */
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.ctx-menu')) hideContextMenu();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') hideContextMenu();
+});
+
+/* ===== 挿入メニュー ===== */
+document.getElementById('insert-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const dropdown = document.getElementById('insert-dropdown');
+  dropdown.classList.toggle('open');
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#insert-menu-wrap')) {
+    document.getElementById('insert-dropdown').classList.remove('open');
+  }
+});
+
+document.querySelectorAll('#insert-dropdown .insert-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const type = item.dataset.type;
+    document.getElementById('insert-dropdown').classList.remove('open');
+    insertElement(type);
+  });
+});
+
+/* 要素挿入実行 */
+function insertElement(type) {
+  if (!iframeDoc) return;
+  const slidePage = iframeDoc.querySelectorAll('.slide-page')[currentSlide];
+  if (!slidePage) return;
+  const slide = slidePage.querySelector('.slide');
+  if (!slide) return;
+
+  switch (type) {
+    case 'text': {
+      const div = iframeDoc.createElement('div');
+      div.className = 'inserted-text-block';
+      div.style.cssText = 'position:absolute;left:100px;top:80px;min-width:80px;padding:6px 12px;font-size:14px;color:#fff;z-index:15;';
+      div.textContent = 'テキストを入力';
+      slide.appendChild(div);
+      selectElement(div);
+      showToast('テキストを挿入しました');
+      break;
+    }
+    case 'image': {
+      document.getElementById('insert-img-file-input').click();
+      return; /* ファイル選択後に挿入 */
+    }
+    case 'button': {
+      const btn = iframeDoc.createElement('div');
+      btn.className = 'inserted-cta-btn';
+      btn.style.cssText = 'position:absolute;left:100px;top:140px;padding:10px 28px;border-radius:6px;font-size:13px;font-weight:700;color:#fff;background:#1b6b2f;z-index:15;cursor:move;text-align:center;';
+      btn.textContent = 'ボタンテキスト';
+      slide.appendChild(btn);
+      selectElement(btn);
+      showToast('ボタンを挿入しました');
+      break;
+    }
+    case 'hr': {
+      const hr = iframeDoc.createElement('div');
+      hr.className = 'inserted-hr';
+      hr.style.cssText = 'position:absolute;left:10%;top:120px;width:80%;height:2px;background:rgba(255,255,255,0.3);z-index:15;cursor:move;';
+      slide.appendChild(hr);
+      selectElement(hr);
+      showToast('区切り線を挿入しました');
+      break;
+    }
+  }
+  saveUndoState();
+}
+
+/* 挿入メニュー用の画像ファイル選択 */
+document.getElementById('insert-img-file-input').addEventListener('change', function() {
+  if (!this.files.length || !iframeDoc) return;
+  const file = this.files[0];
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const dataUrl = ev.target.result;
+    const slide = iframeDoc.querySelectorAll('.slide-page')[currentSlide].querySelector('.slide');
+    if (!slide) return;
+
+    const div = iframeDoc.createElement('div');
+    div.className = 'inserted-img';
+    div.dataset.shape = 'rect';
+    div.style.cssText = 'position:absolute;left:100px;top:60px;width:130px;height:73px;z-index:15;border-radius:4px;overflow:hidden;';
+
+    const img = iframeDoc.createElement('img');
+    img.src = dataUrl;
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;';
+
+    const resizeHandle = iframeDoc.createElement('div');
+    resizeHandle.className = 'img-resize';
+
+    const deleteBtn = iframeDoc.createElement('div');
+    deleteBtn.className = 'img-delete';
+    deleteBtn.textContent = '×';
+
+    div.appendChild(img);
+    div.appendChild(resizeHandle);
+    div.appendChild(deleteBtn);
+    slide.appendChild(div);
+
+    selectElement(div);
+    saveUndoState();
+    showToast('画像を挿入しました');
+  };
+  reader.readAsDataURL(file);
+  this.value = '';
+});
+
+/* ===== Undo/Redo システム ===== */
+function saveUndoState() {
+  if (!iframeDoc) return;
+  /* 選択オーバーレイを一時非表示にしてからスナップショット取得 */
+  const overlay = iframeDoc.getElementById('__sel-overlay__');
+  let overlayDisplay = '';
+  if (overlay) {
+    overlayDisplay = overlay.style.display;
+    overlay.style.display = 'none';
+  }
+
+  const snapshot = iframeDoc.body.innerHTML;
+
+  if (overlay) overlay.style.display = overlayDisplay;
+
+  /* 直前と同じなら保存しない */
+  if (undoStack.length > 0 && undoStack[undoStack.length - 1] === snapshot) return;
+
+  undoStack.push(snapshot);
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  /* 新しい操作をしたのでRedoスタックをクリア */
+  redoStack.length = 0;
+  updateUndoRedoButtons();
+}
+
+function performUndo() {
+  if (undoStack.length <= 1) return; /* 初期状態は残す */
+  const current = undoStack.pop();
+  redoStack.push(current);
+  const previous = undoStack[undoStack.length - 1];
+  restoreState(previous);
+  updateUndoRedoButtons();
+  showToast('元に戻しました');
+}
+
+function performRedo() {
+  if (redoStack.length === 0) return;
+  const next = redoStack.pop();
+  undoStack.push(next);
+  restoreState(next);
+  updateUndoRedoButtons();
+  showToast('やり直しました');
+}
+
+function restoreState(snapshot) {
+  if (!iframeDoc) return;
+  deselectElement();
+  isTextEditing = false;
+  hideFormatToolbar();
+  iframeDoc.body.innerHTML = snapshot;
+  /* オーバーレイを再作成 */
+  createSelectionOverlay();
+  /* スライド数を再計算 */
+  totalSlides = iframeDoc.querySelectorAll('.slide-page').length;
+  buildSidebar();
+  goToSlide(Math.min(currentSlide, totalSlides - 1));
+}
+
+function updateUndoRedoButtons() {
+  document.getElementById('undo-btn').disabled = (undoStack.length <= 1);
+  document.getElementById('redo-btn').disabled = (redoStack.length === 0);
+}
+
+/* Undo/Redoボタンのクリックイベント */
+document.getElementById('undo-btn').addEventListener('click', performUndo);
+document.getElementById('redo-btn').addEventListener('click', performRedo);
+
+/* Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z キーバインド（親ドキュメント） */
+document.addEventListener('keydown', (e) => {
+  /* テキストエリア・入力フィールド内では無視 */
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    e.preventDefault();
+    performUndo();
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+    e.preventDefault();
+    performRedo();
+    return;
+  }
+});
+
+/* ===== 画像挿入（既存互換：右パネルの画像追加セクション） ===== */
 let pendingImgShape = 'rect';
 
 function addImageToSlide(shape) {
@@ -1121,10 +2144,25 @@ document.getElementById('img-file-input').addEventListener('change', function() 
     div.appendChild(deleteBtn);
     slide.appendChild(div);
 
+    selectElement(div);
+    saveUndoState();
     showToast('画像を挿入しました');
   };
   reader.readAsDataURL(file);
   this.value = '';
+});
+
+/* ===== ダウンロード処理 ===== */
+document.getElementById('download-btn').addEventListener('click', () => {
+  if (!iframeDoc) return;
+  const output = getCleanHTML();
+  const blob = new Blob([output], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'slideshow_edited.html';
+  a.click();
+  URL.revokeObjectURL(url);
 });
 
 /* ===== アップデート（localStorageに保存） ===== */
@@ -1132,6 +2170,22 @@ function getCleanHTML() {
   /* エディター用オーバーライドを一時除去してクリーンなHTMLを取得 */
   const ov = iframeDoc.getElementById('__editor__');
   if (ov) ov.remove();
+
+  /* 選択オーバーレイを除去 */
+  const selOverlay = iframeDoc.getElementById('__sel-overlay__');
+  if (selOverlay) selOverlay.remove();
+
+  /* __drag-shadow__ クラスを除去 */
+  iframeDoc.querySelectorAll('.__drag-shadow__').forEach(el => el.classList.remove('__drag-shadow__'));
+  /* __sel-active__ クラスを除去 */
+  iframeDoc.querySelectorAll('.__sel-active__').forEach(el => el.classList.remove('__sel-active__'));
+  /* __locked__ クラスを除去（data-locked属性も除去） */
+  iframeDoc.querySelectorAll('.__locked__').forEach(el => el.classList.remove('__locked__'));
+  iframeDoc.querySelectorAll('[data-locked]').forEach(el => el.removeAttribute('data-locked'));
+  /* contenteditable属性を除去 */
+  iframeDoc.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+  /* selected クラスを除去 */
+  iframeDoc.querySelectorAll('.inserted-img.selected').forEach(el => el.classList.remove('selected'));
 
   iframeDoc.querySelectorAll('.slide').forEach(s => {
     s.style.removeProperty('transform');
@@ -1154,8 +2208,40 @@ function getCleanHTML() {
   style.id = '__editor__';
   style.textContent =
     '#nav-bar,#fullscreen-btn,#progress-bar{display:none!important}' +
-    '.slide{transform:none!important}';
+    '.slide{transform:none!important}' +
+    '.content>*,.list-area>*,.ba-wrap>*,.step-list>*,.cols>*,.slide-num{transition:outline 0.12s}' +
+    '.content>*:hover,.list-area>*:hover,.ba-wrap>*:hover,.step-list>*:hover,.cols>*:hover,.slide-num:hover{outline:1px dashed rgba(27,107,47,0.4);cursor:pointer}' +
+    '[contenteditable=true]{outline:2px solid #1b6b2f!important;background:rgba(27,107,47,0.04);cursor:text}' +
+    '.inserted-img{position:absolute;z-index:15;cursor:move;outline:1px solid transparent;transition:outline 0.12s}' +
+    '.inserted-img:hover{outline:1px dashed #1b6b2f}' +
+    '.inserted-img.selected{outline:2px solid #1b6b2f}' +
+    '.inserted-img img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}' +
+    '.inserted-img .img-resize{position:absolute;right:-4px;bottom:-4px;width:10px;height:10px;background:#1b6b2f;border:1px solid #fff;cursor:nwse-resize;border-radius:2px;z-index:16}' +
+    '.inserted-img .img-delete{position:absolute;top:-8px;right:-8px;width:16px;height:16px;background:#cc2222;color:#fff;border:1px solid #fff;border-radius:50%;font-size:10px;line-height:14px;text-align:center;cursor:pointer;z-index:16;display:none}' +
+    '.inserted-img.selected .img-delete{display:block}' +
+    '#__sel-overlay__{position:absolute;pointer-events:none;z-index:9000;border:2px solid #2563eb;display:none}' +
+    '#__sel-overlay__.active{display:block}' +
+    '.sel-handle{position:absolute;width:8px;height:8px;background:#2563eb;border:1px solid #fff;border-radius:1px;pointer-events:auto;z-index:9001;cursor:pointer}' +
+    '.sel-nw{top:-4px;left:-4px;cursor:nwse-resize}' +
+    '.sel-n{top:-4px;left:50%;margin-left:-4px;cursor:ns-resize}' +
+    '.sel-ne{top:-4px;right:-4px;cursor:nesw-resize}' +
+    '.sel-e{top:50%;right:-4px;margin-top:-4px;cursor:ew-resize}' +
+    '.sel-se{bottom:-4px;right:-4px;cursor:nwse-resize}' +
+    '.sel-s{bottom:-4px;left:50%;margin-left:-4px;cursor:ns-resize}' +
+    '.sel-sw{bottom:-4px;left:-4px;cursor:nesw-resize}' +
+    '.sel-w{top:50%;left:-4px;margin-top:-4px;cursor:ew-resize}' +
+    '.__drag-shadow__{box-shadow:0 4px 20px rgba(0,0,0,0.3)!important}' +
+    '.__locked__{pointer-events:auto;position:relative}' +
+    '.__locked__::after{content:"\\1F512";position:absolute;top:2px;right:2px;font-size:10px;z-index:100;pointer-events:none}' +
+    '.__sel-active__{outline:2px solid #2563eb!important;outline-offset:1px}' +
+    '.inserted-text-block{position:absolute;z-index:15;min-width:40px;min-height:20px;padding:4px 8px;font-size:14px;color:#fff;cursor:move}' +
+    '.inserted-cta-btn{position:absolute;z-index:15;padding:10px 24px;border-radius:6px;font-size:13px;font-weight:700;color:#fff;background:#1b6b2f;text-align:center;cursor:move;white-space:nowrap}' +
+    '.inserted-hr{position:absolute;z-index:15;width:80%;left:10%;height:2px;background:rgba(255,255,255,0.3);cursor:move}';
   iframeDoc.head.appendChild(style);
+
+  /* 選択オーバーレイを再作成 */
+  createSelectionOverlay();
+
   goToSlide(savedActive);
 
   return output;
@@ -1250,16 +2336,59 @@ document.getElementById('reload-btn').addEventListener('click', () => {
   editorScreen.style.display = 'none';
   uploadScreen.style.display = 'flex';
   fileInput.value = '';
+  /* ステートをリセット */
+  undoStack.length = 0;
+  redoStack.length = 0;
+  updateUndoRedoButtons();
+  selectedElement = null;
+  isTextEditing = false;
+  zoomLevel = 100;
+  document.getElementById('zoom-level').textContent = '100%';
 });
 
-/* ===== キーボードナビゲーション ===== */
+/* ===== キーボードナビゲーション（親ドキュメント） ===== */
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+  /* Ctrl+Z/Y はUndo/Redoで処理済み */
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'y')) return;
+
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); goToSlide(currentSlide + 1); }
   if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); goToSlide(currentSlide - 1); }
   if (e.key === 'Home') { e.preventDefault(); goToSlide(0); }
   if (e.key === 'End')  { e.preventDefault(); goToSlide(totalSlides - 1); }
 });
+
+/* ===== iframe内のCtrl+Z/Y をキャプチャしてUndo/Redoに転送 ===== */
+function setupIframeUndoRedo() {
+  if (!iframeDoc) return;
+  iframeDoc.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      performUndo();
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+      e.preventDefault();
+      e.stopPropagation();
+      performRedo();
+      return;
+    }
+  }, true);
+}
+
+/* initEditor内のiframe.onloadコールバックを拡張するためのフック */
+const _origInitEditor = initEditor;
+initEditor = function(html) {
+  _origInitEditor(html);
+  /* iframe.onloadが非同期なので少し待ってからセットアップ */
+  const checkInterval = setInterval(() => {
+    if (iframeDoc) {
+      setupIframeUndoRedo();
+      clearInterval(checkInterval);
+    }
+  }, 100);
+};
 
 /* ===== 起動時にlocalStorageから自動ロード ===== */
 (function autoLoad() {
