@@ -614,6 +614,8 @@ body {
         <div class="insert-item" data-type="image">🖼️ 画像</div>
         <div class="insert-item" data-type="button">🔘 ボタン</div>
         <div class="insert-item" data-type="hr">── 区切り線</div>
+        <div style="height:1px;background:#eee;margin:4px 0;"></div>
+        <div class="insert-item" data-type="delete-slidenums">🗑️ スライド番号を一括削除</div>
       </div>
     </div>
 
@@ -767,7 +769,7 @@ function initEditor(html) {
     '#nav-bar,#fullscreen-btn,#progress-bar{display:none!important}' +
     '.slide{transform:none!important}' +
     '.content>*,.list-area>*,.ba-wrap>*,.step-list>*,.cols>*,.slide-num{transition:outline 0.12s}' +
-    '.content>*:hover,.list-area>*:hover,.ba-wrap>*:hover,.step-list>*:hover,.cols>*:hover,.slide-num:hover{outline:1px dashed rgba(27,107,47,0.4);cursor:pointer}' +
+    '.content>*:hover,.list-area>*:hover,.ba-wrap>*:hover,.step-list>*:hover,.cols>*:hover,.slide-num:hover{outline:1px dashed rgba(27,107,47,0.4);cursor:grab}' +
     '[contenteditable=true]{outline:2px solid #1b6b2f!important;background:rgba(27,107,47,0.04);cursor:text}' +
     '.inserted-img{position:absolute;z-index:15;cursor:move;outline:1px solid transparent;transition:outline 0.12s}' +
     '.inserted-img:hover{outline:1px dashed #1b6b2f}' +
@@ -1458,6 +1460,8 @@ function setupInlineEditing() {
       dragging = true;
       finishEditing();
       downTarget.classList.add('__drag-shadow__');
+      downTarget.style.cursor = 'grabbing';
+      iframeDoc.body.style.cursor = 'grabbing';
     }
 
     if (dragging) {
@@ -1493,6 +1497,8 @@ function setupInlineEditing() {
 
     if (dragging) {
       downTarget.classList.remove('__drag-shadow__');
+      downTarget.style.cursor = '';
+      iframeDoc.body.style.cursor = '';
       saveUndoState();
     }
 
@@ -1971,8 +1977,24 @@ function insertElement(type) {
       showToast('区切り線を挿入しました');
       break;
     }
+    case 'delete-slidenums': {
+      deleteAllSlideNums();
+      return;
+    }
   }
   saveUndoState();
+}
+
+/* ===== スライド番号の一括削除 ===== */
+function deleteAllSlideNums() {
+  if (!iframeDoc) return;
+  const nums = iframeDoc.querySelectorAll('.slide-num');
+  if (nums.length === 0) { showToast('スライド番号が見つかりません'); return; }
+  if (!confirm('全' + nums.length + '枚のスライド番号を一括削除しますか？')) return;
+  nums.forEach(el => el.remove());
+  saveUndoState();
+  buildEditPanel(currentSlide);
+  showToast(nums.length + '個のスライド番号を削除しました');
 }
 
 /* 挿入メニュー用の画像ファイル選択 */
@@ -2210,7 +2232,7 @@ function getCleanHTML() {
     '#nav-bar,#fullscreen-btn,#progress-bar{display:none!important}' +
     '.slide{transform:none!important}' +
     '.content>*,.list-area>*,.ba-wrap>*,.step-list>*,.cols>*,.slide-num{transition:outline 0.12s}' +
-    '.content>*:hover,.list-area>*:hover,.ba-wrap>*:hover,.step-list>*:hover,.cols>*:hover,.slide-num:hover{outline:1px dashed rgba(27,107,47,0.4);cursor:pointer}' +
+    '.content>*:hover,.list-area>*:hover,.ba-wrap>*:hover,.step-list>*:hover,.cols>*:hover,.slide-num:hover{outline:1px dashed rgba(27,107,47,0.4);cursor:grab}' +
     '[contenteditable=true]{outline:2px solid #1b6b2f!important;background:rgba(27,107,47,0.04);cursor:text}' +
     '.inserted-img{position:absolute;z-index:15;cursor:move;outline:1px solid transparent;transition:outline 0.12s}' +
     '.inserted-img:hover{outline:1px dashed #1b6b2f}' +
