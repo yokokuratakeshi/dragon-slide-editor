@@ -528,6 +528,8 @@ body {
   justify-content: center;
 }
 #format-toolbar button:hover { background: rgba(255,255,255,0.15); }
+#format-toolbar button.mic-active { background: #dc2626; animation: mic-pulse 1s infinite; }
+@keyframes mic-pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 .fmt-divider { width: 1px; background: rgba(255,255,255,0.2); margin: 0 2px; }
 
 /* ===== 選択要素プロパティ（右パネル） ===== */
@@ -652,6 +654,8 @@ body {
   <button onclick="execAlign('left')" title="左揃え">⫷</button>
   <button onclick="execAlign('center')" title="中央揃え">☰</button>
   <button onclick="execAlign('right')" title="右揃え">⫸</button>
+  <span class="fmt-divider"></span>
+  <button id="mic-btn" onclick="toggleMic()" title="音声入力">🎤</button>
 </div>
 
 <!-- ===== 右クリックコンテキストメニュー ===== -->
@@ -1380,6 +1384,15 @@ function setupInlineEditing() {
       return;
     }
 
+    /* テキスト編集中に同じ要素内をクリック → カーソル移動を許可 */
+    if (isTextEditing) {
+      const editingEl = iframeDoc.querySelector('[contenteditable="true"]');
+      if (editingEl && editingEl.contains(e.target)) {
+        /* preventDefaultしない → ブラウザの標準カーソル移動が効く */
+        return;
+      }
+    }
+
     /* ロックされた要素はドラッグ不可 */
     const clickedEl = e.target.closest('[data-locked="true"]');
     if (clickedEl && clickedEl.dataset.locked === 'true') {
@@ -1631,6 +1644,8 @@ function setupInlineEditing() {
   /* テキスト編集終了処理 */
   function finishEditing() {
     if (isTextEditing) {
+      /* 音声入力中なら停止 */
+      if (isRecording) stopMic();
       const prev = iframeDoc.querySelector('[contenteditable="true"]');
       if (prev) {
         prev.contentEditable = false;
@@ -1792,6 +1807,132 @@ function execAlign(align) {
   document.getElementById('preview-iframe').contentWindow.focus();
 }
 window.execAlign = execAlign;
+
+/* ===== 音声入力（Web Speech API） ===== */
+let recognition = null;
+let isRecording = false;
+
+function toggleMic() {
+  if (isRecording) {
+    stopMic();
+  } else {
+    startMic();
+  }
+}
+window.toggleMic = toggleMic;
+
+function startMic() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    showToast('このブラウザは音声入力に対応していません');
+    return;
+  }
+  if (!isTextEditing) {
+    showToast('テキスト編集モードで使用してください（ダブルクリック）');
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.lang = 'ja-JP';
+  recognition.interimResults = true;
+  recognition.continuous = true;
+
+  const micBtn = document.getElementById('mic-btn');
+  micBtn.classList.add('mic-active');
+  isRecording = true;
+
+  /* 仮テキスト表示用のspan */
+  let interimSpan = null;
+
+  recognition.onresult = (event) => {
+    const iframeWin = document.getElementById('preview-iframe').contentWindow;
+    let finalText = '';
+    let interimText = '';
+
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        finalText += event.results[i][0].transcript;
+      } else {
+        interimText += event.results[i][0].transcript;
+      }
+    }
+
+    /* 仮テキストを表示（灰色） */
+    if (interimText && !interimSpan) {
+      interimSpan = iframeDoc.createElement('span');
+      interimSpan.style.cssText = 'color:rgba(100,100,100,0.6);font-style:italic;';
+      interimSpan.id = '__mic-interim__';
+      const sel = iframeWin.getSelection();
+      if (sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        range.collapse(false);
+        range.insertNode(interimSpan);
+      }
+    }
+    if (interimSpan) {
+      interimSpan.textContent = interimText;
+    }
+
+    /* 確定テキストをカーソル位置に挿入 */
+    if (finalText) {
+      if (interimSpan) {
+        interimSpan.remove();
+        interimSpan = null;
+      }
+      const sel = iframeWin.getSelection();
+      if (sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        range.collapse(false);
+        const textNode = iframeDoc.createTextNode(finalText);
+        range.insertNode(textNode);
+        range.setStartAfter(textNode);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    }
+  };
+
+  recognition.onerror = (event) => {
+    console.warn('音声認識エラー:', event.error);
+    if (event.error !== 'no-speech') {
+      showToast('音声認識エラー: ' + event.error);
+    }
+    stopMic();
+  };
+
+  recognition.onend = () => {
+    /* 仮テキストを削除 */
+    const interim = iframeDoc.getElementById('__mic-interim__');
+    if (interim) interim.remove();
+
+    if (isRecording) {
+      /* continuous中に自動停止した場合は再開 */
+      try { recognition.start(); } catch(e) { stopMic(); }
+    }
+  };
+
+  recognition.start();
+  showToast('🎤 音声入力開始… マイクに向かって話してください');
+}
+
+function stopMic() {
+  isRecording = false;
+  const micBtn = document.getElementById('mic-btn');
+  if (micBtn) micBtn.classList.remove('mic-active');
+  if (recognition) {
+    recognition.onend = null;
+    recognition.abort();
+    recognition = null;
+  }
+  /* 仮テキストを削除 */
+  if (iframeDoc) {
+    const interim = iframeDoc.getElementById('__mic-interim__');
+    if (interim) interim.remove();
+  }
+  showToast('🎤 音声入力終了');
+  saveUndoState();
+}
 
 /* ===== 右クリックコンテキストメニュー ===== */
 function showContextMenu(x, y, targetEl) {
